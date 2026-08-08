@@ -229,11 +229,15 @@ export function getApiSurface(corpus, mod) {
     namespace: t.Namespace,
     signature: t.Signature,
     summary: t.Summary ?? undefined,
+    addedIn: t.AddedIn ?? undefined,
     members: t.Members.map((m) => ({
       kind: m.Kind,
       name: m.Name,
       signature: m.Signature,
       summary: m.Summary ?? undefined,
+      // Present only where the mod has enough releases to diff. Absent means "since the first release
+      // that had an API", not "unknown whether it exists".
+      addedIn: m.AddedIn ?? undefined,
     })),
   }));
 }

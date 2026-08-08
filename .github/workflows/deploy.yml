@@ -41,6 +41,15 @@ jobs:
       - run: npm ci
       - run: npm ci --prefix mcp
 
+      # The API history walks every release tag of every mod. A tag's tree and files never change, so
+      # without this the nightly run refetches ninety immutable snapshots to learn nothing new.
+      - name: Restore the ingest cache
+        uses: actions/cache@v4
+        with:
+          path: .cache
+          key: ingest-${{ github.run_id }}
+          restore-keys: ingest-
+
       # Reads the org, pulls every mod at its latest release tag, generates the reference. Needs a token
       # only for the API rate limit; every repo it touches is public.
       - name: Ingest mods and build the site

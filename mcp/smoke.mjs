@@ -51,6 +51,12 @@ check('get_api_surface has members with signatures',
   surface?.find((t) => t.name === 'Profiler')?.members.some((m) => m.signature.includes('Sample')));
 check('get_api_surface is null for a mod without one', getApiSurface(corpus, 'yoink') === null);
 
+// Sideload has the most releases and the most API churn, so it is where a broken history shows first.
+const sideload = getApiSurface(corpus, 'sideload');
+const stamped = sideload?.flatMap((t) => [t, ...t.members]).filter((x) => x.addedIn) ?? [];
+check('get_api_surface carries addedIn', stamped.length > 0, `got ${stamped.length} stamped members`);
+check('addedIn looks like a version', stamped.every((x) => /^\d+\.\d+\.\d+$/.test(x.addedIn)));
+
 const guides = listPages(corpus, { kind: 'guide' });
 check('guides were ingested', guides.length >= 30, `got ${guides.length}`);
 check('every page has a title', corpus.pages.every((p) => p.title && p.title.length > 0));

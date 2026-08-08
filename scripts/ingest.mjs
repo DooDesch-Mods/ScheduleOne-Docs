@@ -113,10 +113,127 @@ function latestRef(repo) {
   }
 }
 
-function tree(repo, ref) {
+function tree(repo, ref, cacheable = false) {
+  const key = join(CACHE, 'trees', repo.replace('/', '_'), `${ref.replace(/[^\w.-]/g, '_')}.json`);
+  // A tag's tree is immutable, so it is worth keeping; a branch's is not.
+  if (cacheable && !FRESH && existsSync(key)) return JSON.parse(readFileSync(key, 'utf8'));
+
   const data = JSON.parse(gh(`repos/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`));
   if (data.truncated) throw new Error(`${repo}@${ref}: git tree came back truncated, the API detection would be a guess`);
-  return data.tree.filter((n) => n.type === 'blob').map((n) => n.path);
+  const paths = data.tree.filter((n) => n.type === 'blob').map((n) => n.path);
+
+  if (cacheable) {
+    mkdirSync(dirname(key), { recursive: true });
+    writeFileSync(key, JSON.stringify(paths), 'utf8');
+  }
+  return paths;
+}
+
+/** 1.10.0 comes after 1.9.0, which a string sort gets wrong. */
+const rank = (v) => v.replace(/^v/, '').split('-')[0].split('.').map(Number);
+const bySemver = (a, b) => {
+  const [x, y] = [rank(a), rank(b)];
+  return (x[0] - y[0]) || (x[1] - y[1]) || (x[2] - y[2]) || a.localeCompare(b);
+};
+
+/**
+ * Walks every published release of a mod and diffs its API surface between them, which answers the one
+ * question a reference page otherwise leaves open: can I call this if I require version X?
+ *
+ * Drafts and prereleases are left out - "Added in 2.0.0-beta3" names a version nobody can install. A tag
+ * whose API file cannot be read is skipped rather than fatal: an old release predating the API is normal.
+ */
+function apiHistory(repo, slug) {
+  const tags = gh(`repos/${repo.full_name}/releases?per_page=100`,
+    '.[] | select(.draft == false and .prerelease == false) | .tag_name')
+    .split('\n').filter(Boolean).sort(bySemver);
+  if (tags.length < 2) return null;   // one release is not a history
+
+  const manifest = [];
+  for (const tag of tags) {
+    let paths;
+    try {
+      paths = tree(repo.full_name, tag, true);
+    } catch {
+      continue;                        // a tag that no longer resolves is not worth failing the build over
+    }
+    const sources = findApiSources(repo.name, paths);
+    if (!sources.length) continue;
+
+    const dir = join(CACHE, 'history', slug, tag.replace(/[^\w.-]/g, '_'));
+    mkdirSync(dir, { recursive: true });
+    const files = [];
+    for (const p of sources) {
+      const target = join(dir, basename(p));
+      if (FRESH || !existsSync(target)) writeFileSync(target, readFile(repo.full_name, tag, p, paths));
+      files.push(target);
+    }
+    manifest.push({ version: tag.replace(/^v/, ''), files });
+  }
+  if (manifest.length < 2) return null;
+
+  const manifestPath = join(CACHE, 'history', slug, 'manifest.json');
+  const scanPath = join(CACHE, 'history', slug, 'scan.json');
+  writeFileSync(manifestPath, JSON.stringify(manifest));
+  execFileSync('dotnet', ['run', '-c', 'Release', '--no-build', '--project', APIDOC, '--',
+    'scan', manifestPath, scanPath], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+
+  const scan = JSON.parse(readFileSync(scanPath, 'utf8'));
+  const versions = Object.keys(scan).sort(bySemver);
+
+  const firstSeen = {};
+  const changes = [];
+  let previous = null;
+  for (const version of versions) {
+    const current = new Set(scan[version]);
+    for (const key of current) if (!(key in firstSeen)) firstSeen[key] = version;
+
+    if (previous === null) {
+      changes.push({ version, initial: current.size });
+    } else {
+      const added = [...current].filter((k) => !previous.has(k));
+      const removed = [...previous].filter((k) => !current.has(k));
+      if (added.length || removed.length) changes.push({ version, added, removed });
+    }
+    previous = current;
+  }
+
+  return { firstSeen, changes, versions };
+}
+
+function changesPage(mod, history) {
+  const lines = [
+    '---',
+    `title: ${yaml(mod.name + ' API changes')}`,
+    `description: ${yaml(`What ${mod.name} added to and removed from its public API in each release.`)}`,
+    'sidebar:',
+    '  label: Changes by version',
+    '  order: 90',
+    '---',
+    '',
+    `Derived by comparing the public API surface across all ${history.versions.length} releases that carry ` +
+    'one. A member listed under a version is callable from that version on.',
+    '',
+  ];
+
+  for (const entry of [...history.changes].reverse()) {
+    lines.push(`## ${entry.version}`, '');
+    if (entry.initial !== undefined) {
+      lines.push(`First release covered here. ${entry.initial} public types and members.`, '');
+      continue;
+    }
+    if (entry.added?.length) {
+      lines.push('### Added', '');
+      for (const k of entry.added) lines.push(`- \`${k}\``);
+      lines.push('');
+    }
+    if (entry.removed?.length) {
+      lines.push('### Removed', '');
+      for (const k of entry.removed) lines.push(`- \`${k}\``);
+      lines.push('');
+    }
+  }
+  return lines.join('\n');
 }
 
 function findApiSources(repoName, paths) {
@@ -182,10 +299,11 @@ function readableDependency(id) {
 
 // ---------------------------------------------------------------------------------------------------------------
 
-function runApiDoc(sourceDir, outDir) {
+function runApiDoc(sourceDir, outDir, historyPath) {
   const stdout = execFileSync(
     'dotnet',
-    ['run', '-c', 'Release', '--no-build', '--project', APIDOC, '--', sourceDir, outDir],
+    ['run', '-c', 'Release', '--no-build', '--project', APIDOC, '--', sourceDir, outDir,
+      ...(historyPath ? ['--history', historyPath] : [])],
     { encoding: 'utf8' },
   );
   const m = stdout.match(/(\d+) types, (\d+) members, (\d+)\/(\d+) documented/);
@@ -259,7 +377,22 @@ function buildMod(repo) {
       if (!text) throw new Error(`${repo.full_name}@${ref}: ${p} is in the tree but could not be read`);
       writeFileSync(join(srcDir, basename(p)), text);
     }
-    mod.coverage = runApiDoc(srcDir, join(dir, 'api'));
+    // Every release of this mod, diffed, so each member can say which version it arrived in.
+    const history = apiHistory(repo, slug);
+    let historyPath = null;
+    if (history) {
+      historyPath = join(CACHE, 'history', slug, 'first-seen.json');
+      writeFileSync(historyPath, JSON.stringify(history.firstSeen));
+      mod.versions = history.versions.length;
+    }
+
+    mod.coverage = runApiDoc(srcDir, join(dir, 'api'), historyPath);
+
+    // A page whose only entry is "this is where we started" costs a sidebar slot and answers nothing.
+    if (history?.changes.some((c) => c.initial === undefined)) {
+      writeFileSync(join(dir, 'api', 'changes.md'), changesPage(mod, history));
+      mod.apiChanges = history.changes.length - 1;
+    }
 
     // The machine-readable surface is data, not a page. It lives outside the content collection so the site
     // build never has to decide what to do with it, and so the MCP server can read every mod from one place.

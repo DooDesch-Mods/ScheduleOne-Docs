@@ -4,7 +4,12 @@
 // that needs a built assembly (DocFX, XMLDoc2Markdown, XmlDocMarkdown) is out. Roslyn parses C# syntax with no
 // references at all, which is the whole reason this approach works: the input is a .cs file and nothing else.
 //
-//   apidoc <input.cs|dir> <outdir> [--internal]
+//   apidoc <input.cs|dir> <outdir> [--internal] [--history <first-seen.json>]
+//   apidoc scan <manifest.json> <out.json>
+//
+// `scan` reads [{ "version": "1.2.0", "files": [...] }, ...] and answers with the API key set of each version.
+// It exists so the caller can walk every release tag of a mod in ONE process instead of ninety: the answer to
+// "which version added this member" is a diff across those key sets.
 //
 // Nothing here is best-effort. A doc comment that is not well-formed XML throws with its file and line rather than
 // being dropped, because a silently missing summary is exactly the drift this tool exists to prevent.
@@ -17,9 +22,18 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
+var jsonOut = new JsonSerializerOptions
+{
+    WriteIndented = true,
+    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+};
+
+if (args.Length >= 3 && args[0] == "scan") return Scan(args[1], args[2], jsonOut);
+
 if (args.Length < 2)
 {
-    Console.Error.WriteLine("usage: apidoc <input.cs|dir> <outdir> [--internal]");
+    Console.Error.WriteLine("usage: apidoc <input.cs|dir> <outdir> [--internal] [--history <first-seen.json>]");
+    Console.Error.WriteLine("       apidoc scan <manifest.json> <out.json>");
     return 2;
 }
 
@@ -27,16 +41,13 @@ var input = args[0];
 var outDir = args[1];
 var includeInternal = args.Contains("--internal");
 
-var sources = Directory.Exists(input)
-    ? Directory.GetFiles(input, "*.cs", SearchOption.AllDirectories)
-        .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
-        .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
-        .ToArray()
-    : new[] { input };
+var historyPath = args.SkipWhile(a => a != "--history").Skip(1).FirstOrDefault();
+var history = historyPath is null
+    ? new Dictionary<string, string>()
+    : JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(historyPath))
+      ?? throw new InvalidOperationException($"{historyPath}: not a key -> version map");
 
-var types = new List<ApiType>();
-foreach (var file in sources)
-    types.AddRange(Extract.FromFile(file, includeInternal));
+var types = Parse(Expand(input), includeInternal);
 
 if (types.Count == 0)
 {
@@ -50,22 +61,75 @@ var ordered = types.OrderByDescending(t => t.Members.Count).ThenBy(t => t.Name).
 for (var i = 0; i < ordered.Count; i++)
 {
     var path = Path.Combine(outDir, Slug(ordered[i].Name) + ".md");
-    File.WriteAllText(path, Markdown.Page(ordered[i], i + 1), new UTF8Encoding(false));
+    File.WriteAllText(path, Markdown.Page(ordered[i], i + 1, history), new UTF8Encoding(false));
 }
 
-var json = JsonSerializer.Serialize(types, new JsonSerializerOptions
+// The same "added in" the pages show, carried into the machine-readable surface: an agent asking whether a
+// method exists usually also needs to know from which version, and it will not read the prose to find out.
+var stamped = types.Select(t => t with
 {
-    WriteIndented = true,
-    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-});
-File.WriteAllText(Path.Combine(outDir, "api.json"), json, new UTF8Encoding(false));
+    AddedIn = history.GetValueOrDefault(t.Key),
+    Members = t.Members.Select(m => m with { AddedIn = history.GetValueOrDefault(m.Key) }).ToList(),
+}).ToList();
+File.WriteAllText(Path.Combine(outDir, "api.json"), JsonSerializer.Serialize(stamped, jsonOut), new UTF8Encoding(false));
 
 var documented = types.Sum(t => t.Members.Count(m => m.Summary is not null) + (t.Summary is null ? 0 : 1));
 var total = types.Sum(t => t.Members.Count + 1);
 Console.WriteLine($"apidoc: {types.Count} types, {total - types.Count} members, {documented}/{total} documented ({100.0 * documented / total:F0}%)");
 return 0;
 
+// ---------------------------------------------------------------------------------------------------------------
+
+/// One process for every release tag of a mod: ninety `dotnet run` starts cost more than the parsing does.
+static int Scan(string manifestPath, string outPath, JsonSerializerOptions options)
+{
+    // The manifest is written by a JS caller, so its keys are camelCase.
+    var manifest = JsonSerializer.Deserialize<List<ScanEntry>>(
+        File.ReadAllText(manifestPath), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+        ?? throw new InvalidOperationException($"{manifestPath}: not a list of {{ version, files }}");
+
+    var result = new Dictionary<string, List<string>>();
+    foreach (var entry in manifest)
+    {
+        if (string.IsNullOrEmpty(entry.Version) || entry.Files is null or { Count: 0 })
+            throw new InvalidOperationException($"{manifestPath}: an entry has no version or no files");
+
+        // A tag whose source no longer parses is a fact about that tag, not a reason to abandon the history.
+        try
+        {
+            var types = Parse(entry.Files.ToArray(), includeInternal: false);
+            result[entry.Version] = types
+                .SelectMany(t => new[] { t.Key }.Concat(t.Members.Select(m => m.Key)))
+                .Distinct().OrderBy(k => k, StringComparer.Ordinal).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"apidoc scan: {entry.Version} skipped - {ex.Message}");
+        }
+    }
+
+    File.WriteAllText(outPath, JsonSerializer.Serialize(result, options), new UTF8Encoding(false));
+    Console.WriteLine($"apidoc scan: {result.Count}/{manifest.Count} versions");
+    return 0;
+}
+
+static string[] Expand(string input) => Directory.Exists(input)
+    ? Directory.GetFiles(input, "*.cs", SearchOption.AllDirectories)
+        .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
+        .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
+        .ToArray()
+    : new[] { input };
+
+static List<ApiType> Parse(string[] files, bool includeInternal)
+{
+    var types = new List<ApiType>();
+    foreach (var file in files) types.AddRange(Extract.FromFile(file, includeInternal));
+    return types;
+}
+
 static string Slug(string name) => Regex.Replace(name, "[^A-Za-z0-9]+", "-").Trim('-').ToLowerInvariant();
+
+record ScanEntry(string Version, List<string> Files);
 
 // ---------------------------------------------------------------------------------------------------------------
 
@@ -76,7 +140,16 @@ record ApiType(
     string Signature,
     string? Summary,
     string? Remarks,
-    List<ApiMember> Members);
+    List<ApiMember> Members)
+{
+    /// Identity across versions. Deliberately not the signature: a renamed parameter or a new default value
+    /// is the same member, while a changed parameter type is a different one and should read as such.
+    public string Key => Name;
+
+    /// The release this first appeared in, when a history was supplied. Serialized so a consumer of api.json
+    /// can answer "may I call this on the version I require" without reading a page.
+    public string? AddedIn { get; init; }
+}
 
 record ApiMember(
     string Kind,
@@ -86,7 +159,16 @@ record ApiMember(
     string? Returns,
     List<ApiParam> Parameters,
     List<ApiParam> Exceptions,
-    List<string> ParameterTypes);
+    List<string> ParameterTypes)
+{
+    public string Owner { get; init; } = "";
+
+    public string Key => ParameterTypes.Count > 0 || Kind is "method" or "constructor" or "operator" or "delegate"
+        ? $"{Owner}.{Name}({string.Join(", ", ParameterTypes.Select(Markdown.ShortType))})"
+        : $"{Owner}.{Name}";
+
+    public string? AddedIn { get; init; }
+}
 
 record ApiParam(string Name, string? Description);
 
@@ -126,6 +208,7 @@ static class Extract
 
     static IEnumerable<ApiMember> Members(BaseTypeDeclarationSyntax decl, string file, bool includeInternal)
     {
+        var owner = decl.Identifier.Text;
         // Interface and enum members carry no accessibility of their own; everything declared there is reachable.
         var defaultVisible = decl is InterfaceDeclarationSyntax or EnumDeclarationSyntax;
 
@@ -135,7 +218,7 @@ static class Extract
             {
                 var d = Doc.Of(m, file);
                 yield return new ApiMember("field", m.Identifier.Text, Sig.EnumMember(m),
-                    d?.Block("summary"), null, new(), new(), new());
+                    d?.Block("summary"), null, new(), new(), new()) { Owner = owner };
             }
             yield break;
         }
@@ -180,7 +263,8 @@ static class Extract
                 doc?.Block("returns"),
                 doc?.Named("param") ?? new(),
                 doc?.Named("exception", "cref") ?? new(),
-                paramList?.Parameters.Select(p => p.Type?.ToString() ?? "?").ToList() ?? new());
+                paramList?.Parameters.Select(p => p.Type?.ToString() ?? "?").ToList() ?? new())
+            { Owner = owner };
         }
     }
 
@@ -427,10 +511,16 @@ sealed class Doc
 
 static class Markdown
 {
-    public static string Page(ApiType type, int order)
+    public static string Page(ApiType type, int order, IReadOnlyDictionary<string, string> history)
     {
         var sb = new StringBuilder();
         var lead = FirstSentence(type.Summary);
+
+        // The oldest version in the history is where everything the mod started with lands. Stamping
+        // "Added in 1.0.0" on all of it says nothing; the interesting mark is what arrived later.
+        var first = history.Count == 0 ? null : history.Values.Distinct().OrderBy(Rank).First();
+        string Added(string key) =>
+            history.TryGetValue(key, out var v) && v != first ? $"Added in `{v}`\n\n" : "";
 
         sb.Append("---\n");
         sb.Append($"title: {type.Name}\n");
@@ -441,6 +531,7 @@ static class Markdown
 
         sb.Append("```csharp\n").Append(type.Signature).Append("\n```\n\n");
         if (type.Namespace.Length > 0) sb.Append($"Namespace `{type.Namespace}`\n\n");
+        sb.Append(Added(type.Key));
         if (type.Summary is not null) sb.Append(type.Summary).Append("\n\n");
         if (type.Remarks is not null) sb.Append(type.Remarks).Append("\n\n");
 
@@ -459,6 +550,7 @@ static class Markdown
                     : m.Name;
                 sb.Append("### ").Append(heading).Append("\n\n");
                 sb.Append("```csharp\n").Append(m.Signature).Append("\n```\n\n");
+                sb.Append(Added(m.Key));
                 if (m.Summary is not null) sb.Append(m.Summary).Append("\n\n");
 
                 if (m.Parameters.Count > 0)
@@ -476,9 +568,17 @@ static class Markdown
         return sb.ToString().TrimEnd() + "\n";
     }
 
+    /// Sorts 1.10.0 after 1.9.0, which a string comparison does not.
+    public static (int, int, int) Rank(string version)
+    {
+        var parts = version.TrimStart('v').Split('-')[0].Split('.');
+        int At(int i) => parts.Length > i && int.TryParse(parts[i], out var n) ? n : 0;
+        return (At(0), At(1), At(2));
+    }
+
     /// The heading only has to tell two overloads apart, so the namespace is noise: `Assembly`, not
     /// `System.Reflection.Assembly`. Generic arguments keep their own shortening.
-    static string ShortType(string type) =>
+    public static string ShortType(string type) =>
         Regex.Replace(type, @"[A-Za-z_][\w.]*", m => m.Value[(m.Value.LastIndexOf('.') + 1)..]);
 
     static int Order(string kind) => kind switch

@@ -57,6 +57,16 @@ if (Profiler.Enabled)
 Callbacks you register are invoked by the host on Unity's main thread, so they may touch game objects. Your
 own calls into an API must come from the main thread too.
 
+## Which version added what
+
+The reference documents the mod's latest release. Where a member arrived later than the mod's first
+API release, its entry says **Added in `x.y.z`** - so you can tell whether you may call it while
+supporting an older host. Members without that line have been there since the API existed.
+
+Each mod whose API has changed also has a **Changes by version** page: everything added and everything
+removed, per release. Removals are the ones worth reading. They are derived by comparing the API surface
+between release tags, not from a hand-kept list.
+
 ## What the coverage number means
 
 Each API index page states how many of its public members carry a documentation comment. A member without one

@@ -54,8 +54,9 @@ server.tool(
 
 server.tool(
   'get_api_surface',
-  'Every public type and member one mod exposes, with signatures and summaries, generated from that mod\'s ' +
-    'source at its latest release. Read this before writing code against a mod API.',
+  'Every public type and member one mod exposes, with signatures, summaries and the release each was added ' +
+    'in, generated from that mod\'s own source. Read this before writing code against a mod API, and check ' +
+    'addedIn against the lowest version you intend to support.',
   { mod: z.string().describe('Mod slug, e.g. "snitch", "sideload", "hotline".') },
   async ({ mod }) => {
     const surface = getApiSurface(corpus, mod);
