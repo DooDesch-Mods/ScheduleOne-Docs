@@ -193,7 +193,23 @@ function apiHistory(repo, slug) {
     } else {
       const added = [...current].filter((k) => !previous.has(k));
       const removed = [...previous].filter((k) => !current.has(k));
-      if (added.length || removed.length) changes.push({ version, added, removed });
+
+      // A member that gained or lost a parameter is one removal plus one addition. Reported that way it
+      // reads as "gone", when what actually happened is that its signature moved - which still recompiles
+      // for a caller that rebuilds and still breaks one that does not.
+      const nameOf = (k) => k.split('(')[0];
+      const changed = [];
+      for (const gone of [...removed]) {
+        const replacement = added.find((a) => nameOf(a) === nameOf(gone));
+        if (!replacement) continue;
+        changed.push({ from: gone, to: replacement });
+        added.splice(added.indexOf(replacement), 1);
+        removed.splice(removed.indexOf(gone), 1);
+      }
+
+      if (added.length || removed.length || changed.length) {
+        changes.push({ version, added, removed, changed });
+      }
     }
     previous = current;
   }
@@ -214,6 +230,9 @@ function changesPage(mod, history) {
     `Derived by comparing the public API surface across all ${history.versions.length} releases that carry ` +
     'one. A member listed under a version is callable from that version on.',
     '',
+    'A signature change still compiles for a caller that rebuilds against the new version, and still breaks ' +
+    'one that ships against the old one.',
+    '',
   ];
 
   for (const entry of [...history.changes].reverse()) {
@@ -225,6 +244,11 @@ function changesPage(mod, history) {
     if (entry.added?.length) {
       lines.push('### Added', '');
       for (const k of entry.added) lines.push(`- \`${k}\``);
+      lines.push('');
+    }
+    if (entry.changed?.length) {
+      lines.push('### Signature changed', '');
+      for (const c of entry.changed) lines.push(`- \`${c.from}\` is now \`${c.to}\``);
       lines.push('');
     }
     if (entry.removed?.length) {
