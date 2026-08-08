@@ -1,0 +1,54 @@
+---
+title: DooDesch Mod Docs
+description: Documentation for the DooDesch Schedule I mods - what each one does, how to install it, and the full API reference for the ones other mods build on.
+template: splash
+head:
+  # Starlight appends the site title to every page title; on the one page whose title already is the site
+  # title that reads as a stutter in the tab and in search results.
+  - tag: title
+    content: DooDesch Mod Docs
+hero:
+  tagline: Every DooDesch Schedule I mod, and every API they expose. Generated from the mod repositories at their latest release.
+  actions:
+    - text: Using a mod API
+      link: using-a-mod-api/
+      icon: right-arrow
+      variant: primary
+    - text: Sideload reference
+      link: mods/sideload/api/
+      icon: seti:c-sharp
+      variant: minimal
+    - text: GitHub
+      link: https://github.com/DooDesch-Mods
+      icon: github
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+## Mods that expose an API
+
+Each of these lets another mod talk to it. The reference is generated from the mod's own source at its latest
+release tag, so it says what shipped, not what was planned.
+
+<CardGrid>
+  <LinkCard title="Sideload" href="mods/sideload/api/" description="Write mod interfaces as HTML, CSS and JavaScript, rendered as real Unity UI." />
+  <LinkCard title="Snitch" href="mods/snitch/api/" description="Report your mod's cost and state to the profiler. A no-op when Snitch is absent." />
+  <LinkCard title="Hotline" href="mods/hotline/api/" description="Put your mod's HUD panel in the shared overlay instead of inventing another one." />
+  <LinkCard title="TightBeam" href="mods/tightbeam/api/" description="Take over the flashlight - override the beam, blink it, hand it back." />
+  <LinkCard title="Personnel" href="mods/personnel/api/" description="Spawn NPCs from plain folders as real S1API NPCs." />
+  <LinkCard title="Inkorporated" href="mods/inkorporated/api/" description="Add tattoos to the in-game tattoo shop from your own mod." />
+  <LinkCard title="SideHustle" href="mods/sidehustle/api/" description="Register a gamemode so the main-menu hub can list and launch it." />
+  <LinkCard title="Clipwise" href="mods/clipwise/api/" description="Offer entries in the clipboard picker." />
+  <LinkCard title="Hash" href="mods/hash/api/" description="Register a terminal command." />
+</CardGrid>
+
+## Every mod
+
+The sidebar lists all of them, API or not: what the mod does, what it needs, and its full changelog.
+
+## How this stays current
+
+Nothing here is written by hand except the guides. A build reads the GitHub org, takes every public repo
+tagged `game-schedule-i` at its latest release, and regenerates the overview, the changelog and the API
+reference from that repo's own files. A new mod appears by being tagged, not by anyone editing this site.

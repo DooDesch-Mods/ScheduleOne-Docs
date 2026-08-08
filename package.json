@@ -1,0 +1,21 @@
+{
+  "name": "scheduleone-docs",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Documentation for the DooDesch Schedule I mods - overview, guides and generated API reference, ingested straight from the mod repositories.",
+  "scripts": {
+    "ingest": "node scripts/ingest.mjs",
+    "dev": "node scripts/ingest.mjs && astro dev",
+    "build": "node scripts/ingest.mjs && astro build",
+    "build:only": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.41.3",
+    "astro": "^7.0.7",
+    "sharp": "^0.35.3",
+    "starlight-llms-txt": "^0.11.0"
+  }
+}

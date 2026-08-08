@@ -1,0 +1,13 @@
+# build output
+dist/
+.astro/
+node_modules/
+
+# everything the ingest step pulls or writes: reproducible from the mod repos, never edited by hand
+.cache/
+src/generated/
+src/content/docs/mods/
+
+# apidoc build output
+tools/apidoc/bin/
+tools/apidoc/obj/

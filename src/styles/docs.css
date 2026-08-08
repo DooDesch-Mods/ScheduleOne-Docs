@@ -1,0 +1,16 @@
+/* Signatures carry the meaning on a reference page, so they get the emphasis a heading normally would. */
+.sl-markdown-content h3 + .expressive-code pre,
+.sl-markdown-content h2 + .expressive-code pre {
+  border-left: 3px solid var(--sl-color-accent);
+}
+
+/* Member headings sit close under each other; the default rhythm makes a reference page twice as tall. */
+.sl-markdown-content h3 {
+  margin-top: 2rem;
+}
+
+/* The generated info table has no header row and reads better without the empty band. */
+.sl-markdown-content table thead:empty,
+.sl-markdown-content table th:empty {
+  display: none;
+}

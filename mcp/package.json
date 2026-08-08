@@ -1,0 +1,20 @@
+{
+  "name": "doodesch-docs-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server that indexes the DooDesch Schedule I mod docs so agents can search them and read the generated API surface locally.",
+  "bin": {
+    "doodesch-docs-mcp": "index.mjs"
+  },
+  "scripts": {
+    "start": "node index.mjs",
+    "smoke": "node smoke.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "gray-matter": "^4.0.3",
+    "minisearch": "^7.1.0",
+    "zod": "^3.24.0"
+  }
+}

@@ -1,0 +1,71 @@
+name: Build and deploy docs
+
+on:
+  push:
+    branches: [main]
+  # The content lives in 25 other repositories, so a build with no commit here is the normal case.
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+  # A mod's release workflow can fire this to publish its new version immediately instead of waiting
+  # for the nightly run:  gh api repos/DooDesch-Mods/ScheduleOne-Docs/dispatches -f event_type=mod-released
+  repository_dispatch:
+    types: [mod-released]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Astro 7 / @astrojs/compiler-rs needs Node >= 22.12.
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - run: npm ci
+      - run: npm ci --prefix mcp
+
+      # Reads the org, pulls every mod at its latest release tag, generates the reference. Needs a token
+      # only for the API rate limit; every repo it touches is public.
+      - name: Ingest mods and build the site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm run build
+
+      # A site that builds is not the same as a site that works: the per-mod pages are assembled by rule,
+      # and a wrong rule produces valid HTML pointing at pages that do not exist.
+      - name: Check internal links
+        run: node scripts/check-links.mjs
+
+      - name: Smoke-test the MCP server
+        run: npm run smoke --prefix mcp
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
