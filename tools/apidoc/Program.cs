@@ -177,6 +177,19 @@ static class Extract
     public static IEnumerable<ApiType> FromFile(string file, bool includeInternal)
     {
         var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file);
+
+        // Roslyn recovers from a syntax error instead of throwing, and hands back whatever it managed to
+        // parse. Accepting that would publish a partial API surface as if it were the whole one.
+        var broken = tree.GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .Take(3).ToList();
+        if (broken.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"{file}: does not parse as C#, so any surface read from it would be partial.\n  " +
+                string.Join("\n  ", broken.Select(d => $"{d.Location.GetLineSpan().StartLinePosition.Line + 1}: {d.GetMessage()}")));
+        }
+
         var root = tree.GetCompilationUnitRoot();
 
         foreach (var decl in root.DescendantNodes().OfType<BaseTypeDeclarationSyntax>())
@@ -236,12 +249,24 @@ static class Extract
             if (!Visible(mods, defaultVisible, includeInternal)) continue;
 
             var doc = Doc.Of(m, file);
+
+            // A field or event declaration can declare several members at once. Each is its own entry; they
+            // share the one doc comment the declaration carries.
+            if (m is BaseFieldDeclarationSyntax field)
+            {
+                var fieldKind = field is EventFieldDeclarationSyntax ? "event" : "field";
+                foreach (var v in field.Declaration.Variables)
+                {
+                    yield return new ApiMember(fieldKind, v.Identifier.Text, Sig.Field(field, v),
+                        doc?.Block("summary"), null, new(), new(), new()) { Owner = owner };
+                }
+                continue;
+            }
+
             var (kind, name, sig) = m switch
             {
                 MethodDeclarationSyntax x => ("method", x.Identifier.Text, Sig.Method(x)),
                 PropertyDeclarationSyntax x => ("property", x.Identifier.Text, Sig.Property(x)),
-                EventFieldDeclarationSyntax x => ("event", x.Declaration.Variables[0].Identifier.Text, Sig.Field(x)),
-                FieldDeclarationSyntax x => ("field", x.Declaration.Variables[0].Identifier.Text, Sig.Field(x)),
                 ConstructorDeclarationSyntax x => ("constructor", x.Identifier.Text, Sig.Constructor(x)),
                 DelegateDeclarationSyntax x => ("delegate", x.Identifier.Text, Sig.Delegate(x)),
                 OperatorDeclarationSyntax x => ("operator", x.OperatorToken.Text, Sig.Operator(x)),
@@ -328,13 +353,14 @@ static class Sig
         return Clean(Mods(p.Modifiers) + p.Type + " " + p.Identifier + accessors);
     }
 
-    public static string Field(BaseFieldDeclarationSyntax f)
+    /// One declared variable at a time. `public float Intensity, Range, SpotAngle;` is three members, and
+    /// rendering it as one entry named after the first drops the other two from the reference entirely.
+    public static string Field(BaseFieldDeclarationSyntax f, VariableDeclaratorSyntax v)
     {
         var isConst = f.Modifiers.Any(SyntaxKind.ConstKeyword);
-        var vars = string.Join(", ", f.Declaration.Variables.Select(v =>
-            isConst && v.Initializer is not null ? v.ToString() : v.Identifier.Text));
+        var name = isConst && v.Initializer is not null ? v.ToString() : v.Identifier.Text;
         var evt = f is EventFieldDeclarationSyntax ? "event " : "";
-        return Clean(Mods(f.Modifiers) + evt + f.Declaration.Type + " " + vars);
+        return Clean(Mods(f.Modifiers) + evt + f.Declaration.Type + " " + name);
     }
 
     public static string EnumMember(EnumMemberDeclarationSyntax m) =>

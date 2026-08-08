@@ -25,6 +25,7 @@ const GENERATED = join(ROOT, 'src/generated');
 const CACHE = join(ROOT, '.cache');
 const GUIDES = join(ROOT, 'content/guides');
 const APIDOC = join(ROOT, 'tools/apidoc');
+const GUIDE_EDIT_BASE = 'https://github.com/DooDesch-Mods/ScheduleOne-Docs/edit/main/content/guides';
 
 const args = process.argv.slice(2);
 const FRESH = args.includes('--fresh');
@@ -66,7 +67,9 @@ function readFile(repo, ref, path, paths) {
   if (paths && !paths.includes(path)) return null;
 
   const key = join(CACHE, repo.replace('/', '_'), ref.replace(/[^\w.-]/g, '_'), path.replace(/[\\/]/g, '_'));
-  if (!FRESH && existsSync(key)) return readFileSync(key, 'utf8');
+  // Only a tag is safe to keep. A mod with no release yet is read from a branch, and caching that would
+  // freeze its docs at whatever the branch said the first time anyone built the site.
+  if (isTag(ref) && !FRESH && existsSync(key)) return readFileSync(key, 'utf8');
 
   const value = execFileSync(
     'gh',
@@ -74,10 +77,15 @@ function readFile(repo, ref, path, paths) {
       '-H', 'Accept: application/vnd.github.raw'],
     { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] },
   );
-  mkdirSync(dirname(key), { recursive: true });
-  writeFileSync(key, value, 'utf8');
+  if (isTag(ref)) {
+    mkdirSync(dirname(key), { recursive: true });
+    writeFileSync(key, value, 'utf8');
+  }
   return value;
 }
+
+/** A release tag is immutable and worth caching; a branch name is not. */
+const isTag = (ref) => /^v?\d+\.\d+/.test(ref);
 
 const slugify = (s) => s.replace(/^ScheduleOne-/, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
 const yaml = (s) => JSON.stringify(String(s ?? '').replace(/\s+/g, ' ').trim());
@@ -108,7 +116,14 @@ function latestRef(repo) {
   try {
     const tag = JSON.parse(gh(`repos/${repo.full_name}/releases/latest`)).tag_name;
     return { ref: tag, version: tag.replace(/^v/, ''), released: true };
-  } catch {
+  } catch (err) {
+    // "This mod has no release" is a 404 and a legitimate answer. Anything else - a rate limit, a network
+    // failure - would otherwise be answered by quietly documenting unreleased code and labelling a shipped
+    // mod as unreleased.
+    const message = String(err.stderr ?? err.message ?? '');
+    if (!/Not Found|HTTP 404/.test(message)) {
+      throw new Error(`${repo.full_name}: could not resolve the latest release - ${message.trim()}`);
+    }
     return { ref: repo.default_branch, version: null, released: false };
   }
 }
@@ -129,8 +144,18 @@ function tree(repo, ref, cacheable = false) {
   return paths;
 }
 
-/** 1.10.0 comes after 1.9.0, which a string sort gets wrong. */
-const rank = (v) => v.replace(/^v/, '').split('-')[0].split('.').map(Number);
+/**
+ * 1.10.0 comes after 1.9.0, which a string sort gets wrong. A component that is missing or not a number
+ * counts as 0 rather than NaN: NaN makes every comparison false, which silently degrades the whole sort to
+ * input order and would reverse a version history without saying so.
+ */
+const rank = (v) => {
+  const parts = String(v).replace(/^v/i, '').split('-')[0].split('.');
+  return [0, 1, 2].map((i) => {
+    const n = Number.parseInt(parts[i] ?? '', 10);
+    return Number.isFinite(n) ? n : 0;
+  });
+};
 const bySemver = (a, b) => {
   const [x, y] = [rank(a), rank(b)];
   return (x[0] - y[0]) || (x[1] - y[1]) || (x[2] - y[2]) || a.localeCompare(b);
@@ -154,8 +179,14 @@ function apiHistory(repo, slug) {
     let paths;
     try {
       paths = tree(repo.full_name, tag, true);
-    } catch {
-      continue;                        // a tag that no longer resolves is not worth failing the build over
+    } catch (err) {
+      // A tag that cannot be read is not the same as a tag with no API. Bridging over it silently would
+      // date a member to the next readable release, which is the one claim this page must not get wrong.
+      const message = String(err.stderr ?? err.message ?? '');
+      if (!/Not Found|HTTP 404/.test(message)) {
+        throw new Error(`${repo.full_name}@${tag}: could not read the tree for the API history - ${message.trim()}`);
+      }
+      continue;
     }
     const sources = findApiSources(repo.name, paths);
     if (!sources.length) continue;
@@ -221,6 +252,7 @@ function changesPage(mod, history) {
   const lines = [
     '---',
     `title: ${yaml(mod.name + ' API changes')}`,
+    'editUrl: false',
     `description: ${yaml(`What ${mod.name} added to and removed from its public API in each release.`)}`,
     'sidebar:',
     '  label: Changes by version',
@@ -298,7 +330,14 @@ function absolutize(md, repo, ref) {
     .replace(/!\[([^\]]*)\]\(([^)\s]+)([^)]*)\)/g, (m, alt, target, rest) =>
       local(target) ? `![${alt}](${raw}${target.replace(/^\.\//, '')}${rest})` : m)
     .replace(/(?<!!)\[([^\]]*)\]\(([^)\s]+)([^)]*)\)/g, (m, text, target, rest) =>
-      local(target) ? `[${text}](${blob}${target.replace(/^\.\//, '')}${rest})` : m);
+      local(target) ? `[${text}](${blob}${target.replace(/^\.\//, '')}${rest})` : m)
+    // READMEs mix raw HTML in with the markdown - an <img> banner, an <a> around it. Those carry
+    // repo-relative paths too, and left alone they resolve against this site, where they do not exist.
+    .replace(/(<[a-zA-Z][^>]*?\s)(src|href)(\s*=\s*)(["'])([^"']+)\4/gi, (m, head, attr, eq, quote, target) =>
+      local(target)
+        ? head + attr + eq + quote +
+          (attr.toLowerCase() === 'src' ? raw : blob) + target.replace(/^\.\//, '') + quote
+        : m);
 }
 
 function infoBlock(mod) {
@@ -374,6 +413,9 @@ function buildMod(repo) {
     '---',
     `title: ${yaml(mod.name)}`,
     `description: ${yaml(mod.description)}`,
+    // Nothing on this page exists in this repository - "Edit page" would open GitHub's create-a-file
+    // screen for a path that is rewritten on every build.
+    'editUrl: false',
     'sidebar:',
     '  order: 0',
     '---',
@@ -387,7 +429,13 @@ function buildMod(repo) {
   const guides = existsSync(guideDir) ? readdirSync(guideDir).filter((f) => f.endsWith('.md')).sort() : [];
   if (guides.length) {
     mkdirSync(join(dir, 'guides'), { recursive: true });
-    for (const g of guides) cpSync(join(guideDir, g), join(dir, 'guides', g));
+    for (const g of guides) {
+      // The copy under src/ is generated. A contributor clicking "Edit page" has to land on the real file
+      // in content/guides, or their change is overwritten by the next build.
+      const text = readFileSync(join(guideDir, g), 'utf8')
+        .replace(/^---\r?\n/, `---\neditUrl: ${JSON.stringify(`${GUIDE_EDIT_BASE}/${slug}/${g}`)}\n`);
+      writeFileSync(join(dir, 'guides', g), text);
+    }
   }
   mod.guides = guides.map((g) => basename(g, '.md'));
 
@@ -426,6 +474,7 @@ function buildMod(repo) {
     writeFileSync(join(dir, 'api', 'index.md'), [
       '---',
       `title: ${yaml(mod.name + ' API')}`,
+      'editUrl: false',
       `description: ${yaml(`The public API ${mod.name} exposes to other mods, generated from its source at ${ref}.`)}`,
       'sidebar:',
       '  order: 0',
@@ -446,6 +495,7 @@ function buildMod(repo) {
     writeFileSync(join(dir, 'changelog.md'), [
       '---',
       `title: ${yaml(mod.name + ' changelog')}`,
+      'editUrl: false',
       `description: ${yaml(`Every released version of ${mod.name} and what changed in it.`)}`,
       'sidebar:',
       '  label: Changelog',

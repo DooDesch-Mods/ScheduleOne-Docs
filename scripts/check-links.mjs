@@ -43,16 +43,31 @@ const broken = [];
 let checked = 0;
 
 for (const file of files) {
-  const html = readFileSync(file, 'utf8');
+  // Code samples are not navigation. A rendered snippet containing `src="s1://avatar/..."` or a prose
+  // mention of `<img src="...">` is text about a URL, not a link to one, and counting it would make this
+  // check cry wolf on every documented example. Both the block and the inline form have to go.
+  const html = readFileSync(file, 'utf8')
+    .replace(/<pre[\s\S]*?<\/pre>/g, ' ')
+    .replace(/<code[\s\S]*?<\/code>/g, ' ');
   const from = '/' + posix.relative(DIST.replace(/\\/g, '/'), file.replace(/\\/g, '/'));
 
-  for (const m of html.matchAll(/\shref="([^"]+)"/g)) {
+  // `src` counts too: a README's raw <img> carries a repo-relative path, and checking only href let a
+  // broken banner image ship while CI reported every link healthy.
+  for (const m of html.matchAll(/\s(?:href|src)\s*=\s*["']([^"']+)["']/g)) {
     const href = m[1];
-    if (/^(https?:|\/\/|#|mailto:|data:|javascript:)/.test(href)) continue;
+    // Any scheme at all, not just the handful we happen to use: a mod's own `s1://` links are as external
+    // to this site as `https://` is.
+    if (/^([a-zA-Z][a-zA-Z0-9+.-]*:|\/\/|#)/.test(href)) continue;
 
-    const route = href.split('#')[0].split('?')[0];
-    if (!route) continue;
-    if (!route.startsWith('/')) continue;               // relative assets, resolved by the browser
+    const raw = href.split('#')[0].split('?')[0];
+    if (!raw) continue;
+
+    // A relative target resolves against the page's own directory, which is exactly how the broken image
+    // got in. Resolve it the way a browser would instead of skipping it.
+    const route = raw.startsWith('/')
+      ? raw
+      : posix.resolve(posix.dirname(from), raw);
+
     if (BASE && !route.startsWith(BASE + '/') && route !== BASE) continue;  // outside this site's base
 
     checked++;
