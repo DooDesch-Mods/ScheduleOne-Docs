@@ -1,32 +1,19 @@
 // Indexing and query logic for the DooDesch mod docs MCP.
-// Pure functions over the built markdown corpus - no network, no API cost.
+//
+// The corpus is one JSON bundle that ships with the site. That is deliberate: reading the repository
+// directly would mean a clone, an authenticated `gh`, the .NET SDK and a full ingest before the server can
+// answer anything - a lot to ask of someone who only wants their coding agent to stop inventing signatures.
 
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, statSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { join, relative, sep } from 'node:path';
-import matter from 'gray-matter';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import MiniSearch from 'minisearch';
 
-const DEFAULT_DOCS_DIR = fileURLToPath(new URL('../src/content/docs/', import.meta.url));
-const DEFAULT_API_DIR = fileURLToPath(new URL('../src/generated/api/', import.meta.url));
-const DEFAULT_SITE_URL = 'https://docs.doodesch.de';
-
-function walk(dir) {
-  const out = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) out.push(...walk(full));
-    else if (/\.mdx?$/.test(entry)) out.push(full);
-  }
-  return out;
-}
-
-function slugFromRel(rel) {
-  let s = rel.replace(/\\/g, '/').replace(/\.mdx?$/, '');
-  if (s === 'index') return '';
-  if (s.endsWith('/index')) return s.slice(0, -'/index'.length);
-  return s;
-}
+const DEFAULT_BUNDLE_URL = 'https://docs.doodesch.de/mcp-corpus.json';
+const LOCAL_BUNDLE = fileURLToPath(new URL('../dist/mcp-corpus.json', import.meta.url));
+const CACHE_FILE = join(tmpdir(), 'doodesch-docs-corpus.json');
+const CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
 /**
  * What a page is, which is the facet an agent actually filters on: it wants the reference for a signature
@@ -63,43 +50,55 @@ function extractHeadings(md) {
   return out;
 }
 
-export function loadCorpus(options = {}) {
-  const docsDir = options.docsDir || process.env.DOCS_DIR || DEFAULT_DOCS_DIR;
-  const apiDir = options.apiDir || process.env.DOCS_API_DIR || DEFAULT_API_DIR;
-  const siteUrl = (options.siteUrl || process.env.DOCS_SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '');
+/**
+ * The corpus, in order of preference: an explicit path, the copy this repo just built, then the published
+ * one. The published bundle is cached on disk so an agent that restarts twice in an hour does not refetch
+ * it, and a stale cache is still served when the network is down - out-of-date docs beat no docs.
+ */
+async function readBundle(options) {
+  const explicit = options.bundle ?? process.env.DOCS_BUNDLE;
+  if (explicit) return JSON.parse(readFileSync(explicit, 'utf8'));
+  if (existsSync(LOCAL_BUNDLE)) return JSON.parse(readFileSync(LOCAL_BUNDLE, 'utf8'));
 
-  const pages = [];
-  for (const file of walk(docsDir)) {
-    const raw = readFileSync(file, 'utf8');
-    const { data, content } = matter(raw);
-    const rel = relative(docsDir, file).split(sep).join('/');
-    const slug = slugFromRel(rel);
-    const { mod, kind } = classify(slug);
-    const headings = extractHeadings(content);
-    pages.push({
-      id: slug || 'index',
-      slug,
-      file,
+  const url = options.bundleUrl ?? process.env.DOCS_BUNDLE_URL ?? DEFAULT_BUNDLE_URL;
+  const fresh = existsSync(CACHE_FILE) && Date.now() - statSync(CACHE_FILE).mtimeMs < CACHE_MAX_AGE_MS;
+  if (fresh) return JSON.parse(readFileSync(CACHE_FILE, 'utf8'));
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`${url} answered ${response.status}`);
+    const text = await response.text();
+    const parsed = JSON.parse(text);
+    writeFileSync(CACHE_FILE, text, 'utf8');
+    return parsed;
+  } catch (err) {
+    if (existsSync(CACHE_FILE)) return JSON.parse(readFileSync(CACHE_FILE, 'utf8'));
+    throw new Error(`could not read the docs corpus from ${url}: ${err.message}`);
+  }
+}
+
+export async function loadCorpus(options = {}) {
+  const bundle = await readBundle(options);
+  const siteUrl = (options.siteUrl ?? bundle.site ?? 'https://docs.doodesch.de').replace(/\/$/, '');
+
+  const pages = bundle.pages.map((p) => {
+    const { mod, kind } = classify(p.slug);
+    return {
+      id: p.slug || 'index',
+      slug: p.slug,
       mod,
       kind,
-      title: data.title || headings[0] || slug || 'Home',
-      description: data.description || '',
-      order: data?.sidebar?.order ?? 100,
-      url: slug === '' ? `${siteUrl}/` : `${siteUrl}/${slug}/`,
-      headings,
-      markdown: content.trim(),
-      body: toPlainText(content),
-    });
-  }
+      title: p.title,
+      description: p.description ?? '',
+      order: p.order ?? 100,
+      url: p.slug === '' ? `${siteUrl}/` : `${siteUrl}/${p.slug}/`,
+      headings: extractHeadings(p.markdown),
+      markdown: p.markdown,
+      body: toPlainText(p.markdown),
+    };
+  });
 
-  // The generated API surface, keyed by mod. This is what answers "does this method exist" without the
-  // agent having to read a page and believe its prose.
-  const surfaces = new Map();
-  if (existsSync(apiDir)) {
-    for (const f of readdirSync(apiDir).filter((f) => f.endsWith('.json'))) {
-      surfaces.set(f.replace(/\.json$/, ''), JSON.parse(readFileSync(join(apiDir, f), 'utf8')));
-    }
-  }
+  const surfaces = new Map(Object.entries(bundle.surfaces ?? {}));
 
   const mini = new MiniSearch({
     fields: ['title', 'description', 'headings', 'body'],
@@ -124,7 +123,7 @@ export function loadCorpus(options = {}) {
   })));
 
   const byId = new Map(pages.map((p) => [p.id, p]));
-  return { pages, mini, byId, surfaces, docsDir, apiDir, siteUrl };
+  return { pages, mini, byId, surfaces, siteUrl, generatedAt: bundle.generatedAt };
 }
 
 function snippetFor(page, query) {

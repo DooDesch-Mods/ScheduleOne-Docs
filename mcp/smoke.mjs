@@ -17,7 +17,7 @@ const check = (name, condition, detail = '') => {
   }
 };
 
-const corpus = loadCorpus();
+const corpus = await loadCorpus();
 console.log(`corpus: ${corpus.pages.length} pages, ${corpus.surfaces.size} API surfaces\n`);
 
 check('corpus has pages', corpus.pages.length > 20, `got ${corpus.pages.length}`);

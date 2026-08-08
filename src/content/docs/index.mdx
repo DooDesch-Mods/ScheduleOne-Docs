@@ -10,42 +10,30 @@ head:
 hero:
   tagline: Every DooDesch Schedule I mod, and every API they expose. Generated from the mod repositories at their latest release.
   actions:
-    - text: Using a mod API
-      link: using-a-mod-api/
+    - text: All mods
+      link: mods/
       icon: right-arrow
       variant: primary
-    - text: Sideload reference
-      link: mods/sideload/api/
-      icon: seti:c-sharp
+    - text: Install and troubleshoot
+      link: install/
+      icon: download
       variant: minimal
-    - text: GitHub
-      link: https://github.com/DooDesch-Mods
-      icon: github
+    - text: Using a mod API
+      link: using-a-mod-api/
+      icon: seti:c-sharp
       variant: minimal
 ---
 
 import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-## Mods that expose an API
-
-Each of these lets another mod talk to it. The reference is generated from the mod's own source at its latest
-release tag, so it says what shipped, not what was planned.
+## Two kinds of reader
 
 <CardGrid>
-  <LinkCard title="Sideload" href="mods/sideload/api/" description="Write mod interfaces as HTML, CSS and JavaScript, rendered as real Unity UI." />
-  <LinkCard title="Snitch" href="mods/snitch/api/" description="Report your mod's cost and state to the profiler. A no-op when Snitch is absent." />
-  <LinkCard title="Hotline" href="mods/hotline/api/" description="Put your mod's HUD panel in the shared overlay instead of inventing another one." />
-  <LinkCard title="TightBeam" href="mods/tightbeam/api/" description="Take over the flashlight - override the beam, blink it, hand it back." />
-  <LinkCard title="Personnel" href="mods/personnel/api/" description="Spawn NPCs from plain folders as real S1API NPCs." />
-  <LinkCard title="Inkorporated" href="mods/inkorporated/api/" description="Add tattoos to the in-game tattoo shop from your own mod." />
-  <LinkCard title="SideHustle" href="mods/sidehustle/api/" description="Register a gamemode so the main-menu hub can list and launch it." />
-  <LinkCard title="Clipwise" href="mods/clipwise/api/" description="Offer entries in the clipboard picker." />
-  <LinkCard title="Hash" href="mods/hash/api/" description="Register a terminal command." />
+  <LinkCard title="I want to play with these" href="install/" description="Install with a manager or by hand, update safely, and find the culprit when the game stops loading." />
+  <LinkCard title="I want to build against one" href="using-a-mod-api/" description="How the mod APIs are shipped, and what happens when the host mod is not installed." />
+  <LinkCard title="Show me everything" href="mods/" description="Every mod, what it does, and which version is current." />
+  <LinkCard title="I am an agent" href="agents/" description="An MCP server that answers with the real API surface instead of a guess." />
 </CardGrid>
-
-## Every mod
-
-The sidebar lists all of them, API or not: what the mod does, what it needs, and its full changelog.
 
 ## How this stays current
 

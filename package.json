@@ -7,7 +7,7 @@
   "scripts": {
     "ingest": "node scripts/ingest.mjs",
     "dev": "node scripts/ingest.mjs && astro dev",
-    "build": "node scripts/ingest.mjs && astro build",
+    "build": "node scripts/ingest.mjs && astro build && node scripts/bundle-corpus.mjs",
     "build:only": "astro build",
     "preview": "astro preview",
     "astro": "astro"
@@ -15,6 +15,7 @@
   "dependencies": {
     "@astrojs/starlight": "^0.41.3",
     "astro": "^7.0.7",
+    "gray-matter": "^4.0.3",
     "sharp": "^0.35.3",
     "starlight-llms-txt": "^0.11.0"
   }

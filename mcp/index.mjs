@@ -9,15 +9,18 @@ import { loadCorpus, search, getPage, listPages, listMods, getApiSurface } from 
 
 let corpus;
 try {
-  corpus = loadCorpus();
+  corpus = await loadCorpus();
 } catch (err) {
   console.error(
-    `[doodesch-docs-mcp] Failed to load the docs corpus. Run "npm run ingest" first, or set ` +
-      `DOCS_DIR to the site's src/content/docs folder.\n${err?.stack || err}`,
+    `[doodesch-docs-mcp] Failed to load the docs corpus. It is fetched from the published site and cached; ` +
+      `set DOCS_BUNDLE to a local mcp-corpus.json to work offline.\n${err?.stack || err}`,
   );
   process.exit(1);
 }
-console.error(`[doodesch-docs-mcp] Indexed ${corpus.pages.length} pages, ${corpus.surfaces.size} API surfaces`);
+console.error(
+  `[doodesch-docs-mcp] Indexed ${corpus.pages.length} pages, ${corpus.surfaces.size} API surfaces` +
+    (corpus.generatedAt ? ` (built ${corpus.generatedAt})` : ''),
+);
 
 const server = new McpServer(
   { name: 'doodesch-docs', version: '1.0.0' },

@@ -3,22 +3,26 @@ title: Using a mod API
 description: How the DooDesch mod APIs are shipped, why calling one does not make it a hard dependency, and what to do when the host mod is not installed.
 ---
 
-Every API on this site follows the same shape, so learning one teaches you all of them.
+The APIs are not all shaped the same way, so the page that matters most is the **Consume this API** block at
+the top of each mod's reference. It names the exact file or assembly for that mod, the csproj lines, and what
+happens when the host is absent. This page covers what they do have in common.
 
-## Two ways to take the dependency
+## Two kinds of API
 
-**Reference the DLL.** `Snitch.Api.dll`, `Hotline.Api.dll` and the rest are tiny assemblies with no
-dependencies of their own. Add a `Reference` with a `HintPath` and you get compile-time checking.
+**Six are a single file you copy in.** Snitch, Hotline, Sideload, TightBeam, Clipwise and Hash keep their API
+in one `.cs` file with no dependencies of its own. You copy that file into your project; it compiles as part
+of your assembly, so there is nothing extra to ship. Five of them also have a small `.Api` project you could
+build into an assembly instead - but no release publishes that DLL, so you would be building it yourself.
 
-**Or drop in the single file.** Each API is one `.cs` file. Copy it into your project and it compiles as part
-of your assembly, which means no extra file to ship and no version to keep in step.
+**Three expose their API from the mod's own assembly.** SideHustle, Personnel and Inkorporated have no
+separate API package. You reference the mod's DLL directly, and there is nothing to copy.
 
-Both give the same surface. The file is the same one this site's reference is generated from.
+That difference decides what happens when the host mod is missing, which is the next section.
 
 ## Calling an API you do not require
 
-The APIs bind to their host over reflection at first use. When the host mod is not installed, every call is a
-no-op that returns a default value instead of throwing. That is what lets you write:
+**With a copied file**, the shim binds to its host over reflection at first use. When the host mod is not
+installed, every call is a no-op that returns a default instead of throwing. That is what lets you write:
 
 ```csharp
 using Snitch.Api;
@@ -35,10 +39,14 @@ and ship it unconditionally. Declare the host as optional so load order cannot b
 [assembly: MelonOptionalDependencies("Snitch")]
 ```
 
-## Load order is already handled
+**With a referenced mod assembly**, there is no shim to absorb the absence. If SideHustle is not installed,
+`SideHustle.API` is not there either, and touching it throws. Mark the dependency optional the same way, but
+keep your calls behind a check that runs only once you know the host loaded.
+
+## Load order is already handled, for the copied-file APIs
 
 Registrations made before the host has loaded are queued and replayed when it binds. You do not need to delay
-your setup or poll for the host.
+your setup or poll for the host. This is a property of the shims, not of the referenced-assembly APIs.
 
 ## Gating hot paths
 

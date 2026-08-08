@@ -248,6 +248,71 @@ function apiHistory(repo, slug) {
   return { firstSeen, changes, versions };
 }
 
+/**
+ * The first thing a developer needs and the one thing a signature cannot tell them: which artifact to take,
+ * what to put in the csproj, and what happens when the host mod is not installed. Written per API because
+ * the answer differs - three of the nine have no separate assembly at all.
+ */
+function consumeBlock(mod, ref) {
+  const file = mod.api[0];
+  const link = `${mod.html_url}/blob/${ref}/${file}`;
+  const name = basename(file);
+  const lines = ['## Consume this API', ''];
+
+  if (mod.consumption === 'host-dll') {
+    lines.push(
+      `${mod.name} exposes its API from its own assembly - there is no separate API package and nothing to`,
+      `copy. Reference \`${mod.name}.dll\` from your installed copy of the mod and mark it optional, or your`,
+      'mod will fail to load for anyone who does not have it.',
+      '',
+      '```xml',
+      `<Reference Include="${mod.name}">`,
+      `  <HintPath>$(ModsDirectory)\\${mod.name}.dll</HintPath>`,
+      '  <Private>false</Private>',
+      '</Reference>',
+      '```',
+      '',
+      '```csharp',
+      `[assembly: MelonOptionalDependencies("${mod.name}")]`,
+      '```',
+      '',
+      `Because you are calling the mod directly, guard your calls: when ${mod.name} is absent the type is not`,
+      'there either. Keep the calls behind a check that runs only once you know it loaded.',
+      '',
+    );
+  } else {
+    lines.push(
+      `The whole API is one file. Copy [\`${name}\`](${link}) into your project - that is the supported way,`,
+      'and it means there is no extra assembly to ship and no version to keep in step.',
+      '',
+      '```xml',
+      `<Compile Include="path\\to\\${name}" />`,
+      '```',
+      '',
+      '```csharp',
+      `[assembly: MelonOptionalDependencies("${mod.name}")]`,
+      '```',
+      '',
+      `Every call is a no-op that returns a default when ${mod.name} is not installed, and binds by itself when`,
+      'it is, so you can ship this unconditionally. Registrations made before the host loads are replayed once',
+      'it does.',
+      '',
+    );
+    if (mod.consumption === 'standalone-source') {
+      lines.push(
+        `There is also a \`${mod.name}.Api\` project in the repository if you would rather reference an assembly`,
+        'than compile the file. No release publishes that DLL, so you would be building it yourself.',
+        '',
+      );
+    }
+  }
+
+  if (mod.example) {
+    lines.push(`A worked example lives in [${basename(mod.example)}](${mod.example}).`, '');
+  }
+  return lines.join('\n');
+}
+
 function changesPage(mod, history) {
   const lines = [
     '---',
@@ -290,6 +355,23 @@ function changesPage(mod, history) {
     }
   }
   return lines.join('\n');
+}
+
+/**
+ * How another mod actually gets at this API. The three shapes are told apart by where the API source sits
+ * and whether it has a project of its own - which matters, because they are not interchangeable and the
+ * generic advice ("reference the DLL or drop in the file") is only true for one of them.
+ *
+ * No release publishes an `.Api.dll`, so "reference the API DLL" is never a download; it is something the
+ * consumer builds from the tiny project themselves, and most of them just copy the file instead.
+ */
+function consumption(mod, paths) {
+  const inOwnProject = /\.Api\//.test(mod.api[0] ?? '');
+  const hasProject = paths.some((p) => /\.Api\/[^/]+\.csproj$/.test(p));
+
+  if (inOwnProject && hasProject) return 'standalone-source';
+  if (inOwnProject) return 'linked-source';
+  return 'host-dll';
 }
 
 function findApiSources(repoName, paths) {
@@ -374,7 +456,7 @@ function runApiDoc(sourceDir, outDir, historyPath) {
   return { types: +m[1], members: +m[2], documented: +m[3], total: +m[4] };
 }
 
-function buildMod(repo) {
+function buildMod(repo, examples) {
   const slug = slugify(repo.name);
   const { ref, version, released } = latestRef(repo);
   const paths = tree(repo.full_name, ref);
@@ -382,6 +464,8 @@ function buildMod(repo) {
 
   const mod = {
     slug,
+    // The example repo that demonstrates this API, when the org has one. Derived, not listed.
+    example: examples.get(repo.name) ?? null,
     name: repo.name.replace(/^ScheduleOne-/, ''),
     repo: repo.full_name,
     html_url: repo.html_url,
@@ -393,6 +477,7 @@ function buildMod(repo) {
     pages: [],
   };
   if (mod.isExample) mod.api = [];
+  if (mod.api.length) mod.consumption = consumption(mod, paths);
 
   const manifestRaw = readFile(repo.full_name, ref, 'thunderstore/manifest.json', paths);
   if (manifestRaw) {
@@ -480,6 +565,9 @@ function buildMod(repo) {
       '  order: 0',
       '---',
       '',
+      consumeBlock(mod, ref),
+      '## About this reference',
+      '',
       `Generated from [\`${mod.api.join('`, `')}\`](${mod.html_url}/blob/${ref}/${mod.api[0]}) at \`${ref}\`.`,
       '',
       `${mod.coverage.types} public types, ${mod.coverage.members} members, ` +
@@ -536,15 +624,59 @@ const repos = discover();
 if (!repos.length) throw new Error(`no public repo in ${ORG} carries the ${TOPIC} topic`);
 console.log(`ingest: ${repos.length} repos with topic ${TOPIC}`);
 
+// `ScheduleOne-SnitchExample` demonstrates `ScheduleOne-Snitch`. The link between them is the name, and
+// deriving it here means an example repo appears on its API page by existing, not by being listed.
+const examples = new Map(
+  repos.filter((r) => r.isExample ?? (r.topics ?? []).includes(EXAMPLE_TOPIC))
+    .map((r) => [r.name.replace(/Example$/, ''), r.html_url]));
+
 const mods = [];
 for (const repo of repos) {
-  const mod = buildMod(repo);
+  const mod = buildMod(repo, examples);
   mods.push(mod);
   const api = mod.coverage
     ? `api ${mod.coverage.types}t/${mod.coverage.members}m ${Math.round((100 * mod.coverage.documented) / mod.coverage.total)}%`
     : 'no api';
   console.log(`  ${mod.name.padEnd(16)} ${String(mod.ref).padEnd(10)} ${api}`);
 }
+
+// One page listing everything, generated. The landing page used to carry a hand-kept card grid, which is
+// the one thing this site promises not to have: a list of mods somebody has to remember to update.
+const catalogue = (list, empty) => (list.length
+  ? ['| Mod | What it does | Version |', '|---|---|---|',
+    ...list.map((m) => `| [${m.name}](/mods/${m.slug}/) | ${(m.description || '').replace(/\|/g, '\\|')} | ` +
+      `${m.released ? `\`${m.version}\`` : 'unreleased'} |`), ''].join('\n')
+  : `${empty}\n`);
+
+const players = mods.filter((m) => !m.isExample && !m.coverage);
+const apis = mods.filter((m) => m.coverage);
+const samples = mods.filter((m) => m.isExample);
+
+writeFileSync(join(OUT, '..', 'mods.md'), [
+  '---',
+  'title: All mods',
+  'description: Every DooDesch Schedule I mod, what it does and which version is current, generated from the mod repositories themselves.',
+  'editUrl: false',
+  'sidebar:',
+  '  order: 2',
+  '---',
+  '',
+  `${mods.length} mods, read from the GitHub org at their latest release. Nothing on this page is typed by hand.`,
+  '',
+  '## Mods you install to play',
+  '',
+  catalogue(players, 'None.'),
+  '## Mods other mods build on',
+  '',
+  'These expose an API. Their reference is generated from their own source.',
+  '',
+  catalogue(apis, 'None.'),
+  '## Worked examples',
+  '',
+  'Source to read rather than mods to install.',
+  '',
+  catalogue(samples, 'None.'),
+].join('\n'));
 
 // Mods that expose an API come first: this site exists for them.
 const withApi = mods.filter((m) => m.coverage);

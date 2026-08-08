@@ -41,7 +41,10 @@ export default defineConfig({
       customCss: ['./src/styles/docs.css'],
       sidebar: [
         { label: 'Start here', link: '/' },
+        { label: 'Install and troubleshoot', link: '/install/' },
+        { label: 'All mods', link: '/mods/' },
         { label: 'Using a mod API', link: '/using-a-mod-api/' },
+        { label: 'Use with an agent', link: '/agents/' },
         { label: 'Mods', items: mods },
       ],
     }),

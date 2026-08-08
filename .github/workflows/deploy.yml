@@ -65,6 +65,13 @@ jobs:
       - name: Smoke-test the MCP server
         run: npm run smoke --prefix mcp
 
+      # Discovery by topic is what makes this site automatic, and also how it could silently empty itself.
+      # Gaining a mod stays automatic; losing one has to be acknowledged with ALLOW_SHRINK=1.
+      - name: Refuse to publish less than is already live
+        env:
+          ALLOW_SHRINK: ${{ vars.ALLOW_SHRINK }}
+        run: node scripts/check-shrinkage.mjs
+
       # Dokploy builds the `deploy` branch, which carries the finished site plus the nginx image that
       # serves it. Force-pushing a single fresh commit keeps an artifact branch from growing forever.
       - name: Publish to the deploy branch
