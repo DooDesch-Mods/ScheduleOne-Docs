@@ -12,7 +12,8 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
-const BASE = process.env.DOCS_BASE ?? '/ScheduleOne-Docs';
+// Normalised to '' for a site at the domain root, or '/prefix' for one under a path.
+const BASE = (process.env.DOCS_BASE ?? '/').replace(/\/+$/, '');
 
 if (!existsSync(DIST)) {
   console.error('check-links: no dist/, run the build first');
@@ -52,7 +53,7 @@ for (const file of files) {
     const route = href.split('#')[0].split('?')[0];
     if (!route) continue;
     if (!route.startsWith('/')) continue;               // relative assets, resolved by the browser
-    if (!route.startsWith(BASE + '/') && route !== BASE) continue;  // outside this site's base
+    if (BASE && !route.startsWith(BASE + '/') && route !== BASE) continue;  // outside this site's base
 
     checked++;
     if (!resolves(route.slice(BASE.length))) broken.push({ from, href: route });

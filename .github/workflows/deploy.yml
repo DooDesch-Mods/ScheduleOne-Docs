@@ -13,17 +13,18 @@ on:
     types: [mod-released]
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: docs-deploy
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DOCS_SITE: https://docs.doodesch.de
+      DOCS_BASE: /
     steps:
       - uses: actions/checkout@v4
 
@@ -55,17 +56,20 @@ jobs:
       - name: Smoke-test the MCP server
         run: npm run smoke --prefix mcp
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      # Dokploy builds the `deploy` branch, which carries the finished site plus the nginx image that
+      # serves it. Force-pushing a single fresh commit keeps an artifact branch from growing forever.
+      - name: Publish to the deploy branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf .publish
+          mkdir -p .publish
+          cp -r dist .publish/site
+          cp deploy/Dockerfile deploy/nginx.conf .publish/
+          cd .publish
+          git init -q -b deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "site build from ${GITHUB_SHA}"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:deploy

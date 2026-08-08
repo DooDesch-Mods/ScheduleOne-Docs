@@ -9,7 +9,7 @@ import MiniSearch from 'minisearch';
 
 const DEFAULT_DOCS_DIR = fileURLToPath(new URL('../src/content/docs/', import.meta.url));
 const DEFAULT_API_DIR = fileURLToPath(new URL('../src/generated/api/', import.meta.url));
-const DEFAULT_SITE_URL = 'https://doodesch-mods.github.io/ScheduleOne-Docs';
+const DEFAULT_SITE_URL = 'https://docs.doodesch.de';
 
 function walk(dir) {
   const out = [];

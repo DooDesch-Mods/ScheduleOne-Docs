@@ -5,9 +5,9 @@ import starlight from '@astrojs/starlight';
 import starlightLlmsTxt from 'starlight-llms-txt';
 import { rehypeBaseLinks } from './plugins/rehype-base-links.mjs';
 
-// GitHub Pages project site by default. A custom domain sets SITE + BASE=/ and nothing else changes.
-const SITE = process.env.DOCS_SITE ?? 'https://doodesch-mods.github.io';
-const BASE = process.env.DOCS_BASE ?? '/ScheduleOne-Docs';
+// The published site. CI sets both explicitly; the defaults here are what a local build serves.
+const SITE = process.env.DOCS_SITE ?? 'https://docs.doodesch.de';
+const BASE = process.env.DOCS_BASE ?? '/';
 
 // The per-mod tree is written by scripts/ingest.mjs before the build. An empty file is a real state
 // (nothing ingested yet), a missing one means the build ran without the ingest step.

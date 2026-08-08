@@ -5,7 +5,7 @@ reference for the ones other mods build on.
 
 🛟 **Need help or found a bug?** Get support at [support.doodesch.de/docs](https://support.doodesch.de/docs).
 
-**[Read the docs](https://doodesch-mods.github.io/ScheduleOne-Docs/)**
+**[Read the docs](https://docs.doodesch.de)**
 
 ## What is generated and what is written
 
