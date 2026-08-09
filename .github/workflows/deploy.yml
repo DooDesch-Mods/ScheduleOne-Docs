@@ -4,8 +4,13 @@ on:
   push:
     branches: [main]
   # The content lives in 25 other repositories, so a build with no commit here is the normal case.
+  #
+  # Every two hours rather than nightly. A mod release cannot reach this workflow on its own - a
+  # repository_dispatch from another repo needs a token this org does not hand out yet - so the poll
+  # interval IS the lag between publishing a mod and its documentation catching up. A build is two
+  # minutes and this repo is public, so the cost of asking more often is nothing.
   schedule:
-    - cron: '17 4 * * *'
+    - cron: '17 */2 * * *'
   workflow_dispatch:
   # A mod's release workflow can fire this to publish its new version immediately instead of waiting
   # for the nightly run:  gh api repos/DooDesch-Mods/ScheduleOne-Docs/dispatches -f event_type=mod-released
