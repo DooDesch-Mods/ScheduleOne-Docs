@@ -31,7 +31,9 @@ export default defineConfig({
         {
           icon: 'discord',
           label: 'Discord',
-          href: 'https://discord.gg/aN3u7BTa3h',
+          // The owned domain redirects to the invite; a rotated invite is then one redirect to change,
+          // not a rebuild of every page.
+          href: 'https://mods.doodesch.de',
         },
         {
           icon: 'github',

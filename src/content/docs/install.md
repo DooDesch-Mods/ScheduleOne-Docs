@@ -53,7 +53,7 @@ IL2CPP (normal Steam) build.
 
 ## Asking someone
 
-The **[DooDesch Mods Discord](https://discord.gg/aN3u7BTa3h)** is the fastest route when the log has not told
+The **[DooDesch Mods Discord](https://mods.doodesch.de)** is the fastest route when the log has not told
 you enough, or when you are not sure whether what you are seeing is a bug at all. Bring the log.
 
 ## Reporting it

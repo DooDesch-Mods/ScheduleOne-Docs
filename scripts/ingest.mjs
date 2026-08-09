@@ -26,7 +26,10 @@ const CACHE = join(ROOT, '.cache');
 const GUIDES = join(ROOT, 'content/guides');
 const APIDOC = join(ROOT, 'tools/apidoc');
 const GUIDE_EDIT_BASE = 'https://github.com/DooDesch-Mods/ScheduleOne-Docs/edit/main/content/guides';
-const DISCORD = 'https://discord.gg/aN3u7BTa3h';
+// The owned domain, which redirects to the Discord invite. Linking the invite directly would put a URL we
+// do not control into 134 pages, and a rotated or expired invite would then need a rebuild rather than a
+// change to one redirect.
+const DISCORD = 'https://mods.doodesch.de';
 
 const args = process.argv.slice(2);
 const FRESH = args.includes('--fresh');
