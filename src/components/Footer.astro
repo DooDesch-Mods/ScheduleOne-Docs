@@ -9,8 +9,12 @@
 // Umami either, because the thumb would have nowhere to go.
 import Default from '@astrojs/starlight/components/Footer.astro';
 
+// `process.env`, never `import.meta.env`. Vite inlines the latter at build time, so a value supplied to the
+// build is fine but a value supplied later never arrives - and with no value at build time the condition
+// folds to false and this block vanishes from the output entirely, with no tag, no id and no error to see.
+// astro.config.mjs reads the same variable the same way; the two must not disagree about where it comes from.
 const isSplash = Astro.locals.starlightRoute?.entry?.data?.template === 'splash';
-const show = !isSplash && Boolean(import.meta.env.PUBLIC_UMAMI_ID);
+const show = !isSplash && Boolean(process.env.PUBLIC_UMAMI_ID);
 ---
 
 <Default><slot /></Default>

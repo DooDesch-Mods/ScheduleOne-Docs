@@ -32,6 +32,9 @@ jobs:
     env:
       DOCS_SITE: https://docs.doodesch.de
       DOCS_BASE: /
+      # Umami website id for docs.doodesch.de. Unset, no tracking tag and no feedback control are emitted -
+      # a repo variable is all it takes to switch both on.
+      PUBLIC_UMAMI_ID: ${{ vars.PUBLIC_UMAMI_ID }}
     steps:
       - uses: actions/checkout@v4
 
