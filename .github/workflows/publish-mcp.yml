@@ -1,0 +1,57 @@
+name: Publish the MCP package
+
+# Publishes mcp/ to npm as doodesch-docs-mcp when a tag like mcp-v1.0.0 is pushed.
+#
+# Needs one secret, NPM_TOKEN, an automation token from npmjs.com. Everything else is here: the tag has to
+# match the version in mcp/package.json, or the run fails rather than publishing a version nobody asked for.
+
+on:
+  push:
+    tags: ['mcp-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # npm provenance signs the package against this workflow run.
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: The tag and the manifest agree
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#mcp-v}"
+          manifest=$(node -p "require('./mcp/package.json').version")
+          echo "tag $tag, manifest $manifest"
+          [ "$tag" = "$manifest" ] || { echo "::error::tag mcp-v$tag does not match mcp/package.json $manifest"; exit 1; }
+
+      - run: npm ci --prefix mcp
+
+      # The package fetches its corpus from the published site, so this proves the shipped code can answer
+      # without anything else from this repository present.
+      - name: It answers from the published corpus alone
+        run: |
+          set -euo pipefail
+          cd mcp
+          node --input-type=module -e "
+            const { loadCorpus, getApiSurface } = await import('./lib.mjs');
+            const corpus = await loadCorpus();
+            const surface = getApiSurface(corpus, 'snitch');
+            if (!surface?.length) throw new Error('no API surface for snitch');
+            console.log('ok:', corpus.pages.length, 'pages,', corpus.surfaces.size, 'surfaces');
+          "
+
+      - run: npm publish --provenance --access public
+        working-directory: mcp
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

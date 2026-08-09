@@ -55,6 +55,18 @@ if (types.Count == 0)
     return 1;
 }
 
+// Two types with the same simple name would share a page slug and a history key: one page would overwrite
+// the other, and one type's first appearance would be dated from the other's. Both losses are silent, so
+// this is a hard stop rather than a rename.
+var collisions = types.GroupBy(t => Slug(t.Name)).Where(g => g.Count() > 1).ToList();
+if (collisions.Count > 0)
+{
+    Console.Error.WriteLine("apidoc: two public types share a name, which would silently drop one:");
+    foreach (var group in collisions)
+        Console.Error.WriteLine($"  {string.Join(", ", group.Select(t => $"{t.Namespace}.{t.Name}"))}");
+    return 1;
+}
+
 Directory.CreateDirectory(outDir);
 // The type a reader opens first is the one with the most surface, not the one that sorts first alphabetically.
 var ordered = types.OrderByDescending(t => t.Members.Count).ThenBy(t => t.Name).ToList();
@@ -144,6 +156,10 @@ record ApiType(
 {
     /// Identity across versions. Deliberately not the signature: a renamed parameter or a new default value
     /// is the same member, while a changed parameter type is a different one and should read as such.
+    ///
+    /// The simple name, not the qualified one, because this key is printed on every line of the changes page
+    /// and `Snitch.Api.Profiler.Sample(string)` earns nothing there. Two types sharing a simple name would
+    /// break that assumption, so extraction refuses them outright rather than dating one from the other.
     public string Key => Name;
 
     /// The release this first appeared in, when a history was supplied. Serialized so a consumer of api.json
@@ -288,7 +304,15 @@ static class Extract
                 doc?.Block("returns"),
                 doc?.Named("param") ?? new(),
                 doc?.Named("exception", "cref") ?? new(),
-                paramList?.Parameters.Select(p => p.Type?.ToString() ?? "?").ToList() ?? new())
+                // `ref`/`out`/`in` are part of what a caller has to write, so two overloads that differ only
+                // there are different members and must not collapse into one key.
+                paramList?.Parameters.Select(p =>
+                    string.Concat(
+                        string.Join("", p.Modifiers
+                            .Where(t => t.IsKind(SyntaxKind.RefKeyword) || t.IsKind(SyntaxKind.OutKeyword)
+                                     || t.IsKind(SyntaxKind.InKeyword) || t.IsKind(SyntaxKind.ParamsKeyword))
+                            .Select(t => t.Text + " ")),
+                        p.Type?.ToString() ?? "?")).ToList() ?? new())
             { Owner = owner };
         }
     }

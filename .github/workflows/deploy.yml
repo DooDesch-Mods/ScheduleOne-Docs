@@ -12,8 +12,10 @@ on:
   repository_dispatch:
     types: [mod-released]
 
+# Read-only by default. Only the job that pushes the built site asks for more, and it runs no third-party
+# code: the whole npm dependency tree executes in the build job, which cannot write to this repository.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: docs-deploy
@@ -51,7 +53,7 @@ jobs:
           restore-keys: ingest-
 
       # Reads the org, pulls every mod at its latest release tag, generates the reference. Needs a token
-      # only for the API rate limit; every repo it touches is public.
+      # only for the API rate limit; every repo it touches is public and it never writes.
       - name: Ingest mods and build the site
         env:
           GH_TOKEN: ${{ github.token }}
@@ -72,12 +74,35 @@ jobs:
           ALLOW_SHRINK: ${{ vars.ALLOW_SHRINK }}
         run: node scripts/check-shrinkage.mjs
 
-      # Dokploy builds the `deploy` branch, which carries the finished site plus the nginx image that
-      # serves it. Force-pushing a single fresh commit keeps an artifact branch from growing forever.
-      - name: Publish to the deploy branch
+      - name: Hand the finished site to the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: |
+            dist
+            deploy
+          retention-days: 1
+
+  # Dokploy builds the `deploy` branch, which carries the finished site plus the nginx image that serves it.
+  # Force-pushing a single fresh commit keeps an artifact branch from growing forever.
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+
+      - name: Push the site to the deploy branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          test -f dist/index.html
+          test -f deploy/Dockerfile
+
           rm -rf .publish
           mkdir -p .publish
           cp -r dist .publish/site

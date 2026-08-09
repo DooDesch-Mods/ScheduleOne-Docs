@@ -1,11 +1,40 @@
 {
   "name": "doodesch-docs-mcp",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
-  "description": "MCP server for the DooDesch Schedule I mod docs. Fetches the published corpus - no clone, no build, no game SDK.",
+  "description": "MCP server for the DooDesch Schedule I mod docs: the real public API surface of every mod, so a coding agent stops inventing method signatures.",
+  "license": "MIT",
+  "author": "DooDesch <doodesch@gmail.com>",
+  "homepage": "https://docs.doodesch.de/agents/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DooDesch-Mods/ScheduleOne-Docs.git",
+    "directory": "mcp"
+  },
+  "bugs": {
+    "url": "https://support.doodesch.de/docs"
+  },
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "schedule-i",
+    "melonloader",
+    "modding",
+    "documentation"
+  ],
   "bin": {
     "doodesch-docs-mcp": "index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "lib.mjs",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "start": "node index.mjs",
