@@ -29,6 +29,11 @@ export default defineConfig({
       plugins: [starlightLlmsTxt({ projectName: 'DooDesch Schedule I Mod Docs' })],
       social: [
         {
+          icon: 'discord',
+          label: 'Discord',
+          href: 'https://discord.gg/aN3u7BTa3h',
+        },
+        {
           icon: 'github',
           label: 'GitHub',
           href: 'https://github.com/DooDesch-Mods',

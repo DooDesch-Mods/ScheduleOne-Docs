@@ -26,6 +26,7 @@ const CACHE = join(ROOT, '.cache');
 const GUIDES = join(ROOT, 'content/guides');
 const APIDOC = join(ROOT, 'tools/apidoc');
 const GUIDE_EDIT_BASE = 'https://github.com/DooDesch-Mods/ScheduleOne-Docs/edit/main/content/guides';
+const DISCORD = 'https://discord.gg/aN3u7BTa3h';
 
 const args = process.argv.slice(2);
 const FRESH = args.includes('--fresh');
@@ -432,6 +433,9 @@ function infoBlock(mod) {
   rows.push(`| Download | ${links.join(' · ')} |`);
   if (mod.dependencies?.length) rows.push(`| Requires | ${mod.dependencies.join(', ')} |`);
   if (mod.api.length) rows.push(`| API | [Reference](/mods/${mod.slug}/api/) |`);
+  // The box is where a reader looks for somewhere to go. A header icon is easy to miss when you are
+  // already stuck on this page.
+  rows.push(`| Help | [Discord](${DISCORD}) · [Report a bug](https://support.doodesch.de/${mod.slug}) |`);
   return `| | |\n|---|---|\n${rows.join('\n')}\n`;
 }
 

@@ -51,9 +51,15 @@ does not.
 **Check the obvious three.** MelonLoader version, the mod's listed dependencies, and whether you are on the
 IL2CPP (normal Steam) build.
 
+## Asking someone
+
+The **[DooDesch Mods Discord](https://discord.gg/aN3u7BTa3h)** is the fastest route when the log has not told
+you enough, or when you are not sure whether what you are seeing is a bug at all. Bring the log.
+
 ## Reporting it
 
-Every mod has a support link on its page. What makes a report actionable:
+Every mod has a support link on its page, and a bug with a log attached belongs there rather than in chat -
+an issue survives, a message scrolls away. What makes a report actionable:
 
 - `MelonLoader/Latest.log` attached, not pasted in pieces
 - the mod version and the game version
