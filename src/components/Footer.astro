@@ -1,0 +1,20 @@
+---
+// Starlight's footer, plus the page-feedback control.
+//
+// The control itself is public/feedback.js - a standalone file with no dependencies, so the other
+// doodesch.de sites can include the same URL rather than each growing their own copy. This component only
+// decides WHERE it appears.
+//
+// Not on the splash page: "Was this page useful?" under a landing page asks about nothing. Not without
+// Umami either, because the thumb would have nowhere to go.
+import Default from '@astrojs/starlight/components/Footer.astro';
+
+const isSplash = Astro.locals.starlightRoute?.entry?.data?.template === 'splash';
+const show = !isSplash && Boolean(import.meta.env.PUBLIC_UMAMI_ID);
+---
+
+<Default><slot /></Default>
+
+{show && (
+  <script is:inline defer src="/feedback.js" data-support="https://support.doodesch.de/docs"></script>
+)}

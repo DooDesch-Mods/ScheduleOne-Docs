@@ -41,6 +41,23 @@ export default defineConfig({
           href: 'https://github.com/DooDesch-Mods',
         },
       ],
+      // Umami, self-hosted and cookieless, at stats.doodesch.de. The id is this site's own - reusing
+      // another site's would merge two sites' numbers with nothing to show that it happened. Absent, no
+      // tag is emitted at all, which is the deliberate default for a local build.
+      head: process.env.PUBLIC_UMAMI_ID
+        ? [{
+            tag: 'script',
+            attrs: {
+              defer: true,
+              src: 'https://stats.doodesch.de/script.js',
+              'data-website-id': process.env.PUBLIC_UMAMI_ID,
+            },
+          }]
+        : [],
+      components: {
+        // Adds the page-feedback control under the default footer.
+        Footer: './src/components/Footer.astro',
+      },
       editLink: {
         baseUrl: 'https://github.com/DooDesch-Mods/ScheduleOne-Docs/edit/main/',
       },

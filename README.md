@@ -44,6 +44,27 @@ npm run preview
 `--only=snitch,sideload` to work on one mod. The ingest needs the `gh` CLI authenticated and the .NET 8 SDK
 for the reference generator.
 
+## Analytics and page feedback
+
+`PUBLIC_UMAMI_ID` decides both. Unset - a local build, a fork - no tracking tag is emitted and no feedback
+control is rendered, rather than a control that swallows clicks.
+
+`public/feedback.js` is standalone on purpose: no dependencies, no build step, no backend. Any doodesch.de
+site that already loads the Umami tracker can use the same file:
+
+```html
+<script defer src="https://docs.doodesch.de/feedback.js"
+        data-support="https://support.doodesch.de/docs"></script>
+```
+
+A thumb sends `page-feedback {helpful, path}`; a thumbs-down then asks why and sends
+`page-feedback-reason {reason, path}`. Both are low-cardinality and carry nothing personal.
+
+**Free text deliberately does not go to Umami.** Analytics has no reply button, so a sentence there can be
+read and never answered - and people type names, emails and save paths into a comment box, which would turn
+a cookieless install into a store of personal data by accident. The control links to the support form
+instead, with the page prefilled, where a person can answer and close it.
+
 ## Checks
 
 ```bash
