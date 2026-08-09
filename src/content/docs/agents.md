@@ -10,27 +10,20 @@ it compiles in their head and nowhere else. The fix is to hand them the real sur
 
 ## Add the server
 
-```bash
-git clone --depth 1 https://github.com/DooDesch-Mods/ScheduleOne-Docs.git
-npm ci --prefix ScheduleOne-Docs/mcp
-```
-
-Then point your agent at it:
-
 ```json
 {
   "mcpServers": {
     "doodesch-docs": {
-      "command": "node",
-      "args": ["/path/to/ScheduleOne-Docs/mcp/index.mjs"]
+      "command": "npx",
+      "args": ["-y", "doodesch-docs-mcp"]
     }
   }
 }
 ```
 
-Claude Code, Cursor, Codex and anything else speaking MCP over stdio take this shape. It needs Node and
-three small packages - no game SDK, no .NET, no build step. The corpus is downloaded from this site on first
-use and cached for six hours.
+Claude Code, Cursor, Codex and anything else speaking MCP over stdio take this shape. It needs Node 20 or
+newer and nothing else - no clone, no game SDK, no .NET, no build step. The corpus is downloaded from this
+site on first use and cached for six hours.
 
 ## What it answers
 
@@ -56,7 +49,7 @@ The bundle behind all of it is a single file:
 
 ```bash
 curl -O https://docs.doodesch.de/mcp-corpus.json
-DOCS_BUNDLE=./mcp-corpus.json node /path/to/ScheduleOne-Docs/mcp/index.mjs
+DOCS_BUNDLE=./mcp-corpus.json npx -y doodesch-docs-mcp
 ```
 
 If the site is unreachable and a cached copy exists, the server serves the cache rather than failing. Out of
