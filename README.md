@@ -57,7 +57,7 @@ site that already loads the Umami tracker can use the same file:
         data-support="https://support.doodesch.de/docs"></script>
 ```
 
-A thumb sends `page-feedback {helpful, path}`; a thumbs-down then asks why and sends
+It appears when the reader reaches the end of the page, not on load - which is the moment the question is honest and the answer is worth having. A thumb sends `page-feedback {helpful, path}`; a thumbs-down then asks why and sends
 `page-feedback-reason {reason, path}`. Both are low-cardinality and carry nothing personal.
 
 **Free text deliberately does not go to Umami.** Analytics has no reply button, so a sentence there can be

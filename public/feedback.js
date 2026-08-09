@@ -151,6 +151,9 @@
 
   box.append(el('div', { className: 'ddf-row' }, [
     el('p', { className: 'ddf-q', textContent: 'Was this page useful?' }),
+    // The past tense is a claim: it says the reader is done. That is only true if this waits for them to
+    // reach the end, which is what mount() below does - and it is also the moment the answer is worth
+    // anything. Showing it on load would ask about a page nobody has read yet.
     el('button', {
       className: 'ddf-b', type: 'button', textContent: '\u{1F44D}',
       title: 'Yes', ariaLabel: 'Yes, this page was useful',
@@ -167,5 +170,38 @@
     }),
   ]));
 
-  document.body.append(box);
+  /**
+   * Appears when the reader reaches the end of the page, not when the page loads.
+   *
+   * That is the moment the question is honest and the answer is worth having, and it keeps a box out of the
+   * corner while someone is still reading. On a page short enough to fit the screen the end is already in
+   * view, so it appears at once - correctly, because there was nothing left to read.
+   */
+  const mount = () => {
+    if (box.isConnected) return;
+    document.body.append(box);
+  };
+
+  const end = document.querySelector('footer') ?? document.body.lastElementChild;
+
+  if (end && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        observer.disconnect();
+        mount();
+      }
+    }, { rootMargin: '0px 0px -10% 0px' });
+    observer.observe(end);
+  } else {
+    // No observer, or nothing to observe: fall back to "most of the way down" rather than never asking.
+    const onScroll = () => {
+      const seen = (scrollY + innerHeight) / document.documentElement.scrollHeight;
+      if (seen > 0.85) {
+        removeEventListener('scroll', onScroll);
+        mount();
+      }
+    };
+    addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
 })();
