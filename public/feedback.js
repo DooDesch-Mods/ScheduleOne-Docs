@@ -22,10 +22,16 @@
 (() => {
   'use strict';
 
+  // The fallback matches on the attribute, not the filename: a site that proxies this file under its own
+  // origin to survive blockers serves it under a name of its own choosing.
   const script = document.currentScript
-    ?? document.querySelector('script[src$="feedback.js"]');
+    ?? document.querySelector('script[data-support]');
   const SUPPORT = script?.dataset.support ?? '';
   const EVENT = script?.dataset.event ?? 'page-feedback';
+  // Seconds to wait before asking, for a page that is a tool rather than something to read. A configurator
+  // fits on one screen, so "reached the end" is true the moment it loads - and asking somebody how useful a
+  // thing was before they have used it collects an opinion about nothing.
+  const AFTER = Number(script?.dataset.after ?? 0);
   const KEY = `feedback:${location.pathname}`;
 
   // Nothing to report to, nothing to show. A control that quietly discards clicks is worse than no control.
@@ -151,9 +157,9 @@
 
   box.append(el('div', { className: 'ddf-row' }, [
     el('p', { className: 'ddf-q', textContent: 'Was this page useful?' }),
-    // The past tense is a claim: it says the reader is done. That is only true if this waits for them to
-    // reach the end, which is what mount() below does - and it is also the moment the answer is worth
-    // anything. Showing it on load would ask about a page nobody has read yet.
+    // The past tense is a claim: it says the visitor is done. That is only true because mount() below waits
+    // for them to finish - and that is also the moment the answer is worth anything. Showing it on load
+    // would ask about a page nobody has read yet.
     el('button', {
       className: 'ddf-b', type: 'button', textContent: '\u{1F44D}',
       title: 'Yes', ariaLabel: 'Yes, this page was useful',
@@ -171,16 +177,34 @@
   ]));
 
   /**
-   * Appears when the reader reaches the end of the page, not when the page loads.
+   * When to ask. Two triggers, because two kinds of page.
    *
-   * That is the moment the question is honest and the answer is worth having, and it keeps a box out of the
-   * corner while someone is still reading. On a page short enough to fit the screen the end is already in
-   * view, so it appears at once - correctly, because there was nothing left to read.
+   * Something to READ: when the end comes into view. That is the moment the question is honest, and it
+   * keeps a box out of the corner while someone is still reading. A page short enough to fit the screen
+   * shows it at once - correctly, there was nothing left to read.
+   *
+   * Something to USE (`data-after="45"`): after that many seconds of the tab actually being in front. A
+   * configurator fits on one screen, so the end is in view immediately and the reading trigger would ask
+   * before anyone had touched it.
    */
   const mount = () => {
     if (box.isConnected) return;
     document.body.append(box);
   };
+
+  if (AFTER > 0) {
+    // Only count time the tab is actually in front. A page left open in a background tab has not been used.
+    let spent = 0;
+    const tick = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      spent += 1;
+      if (spent >= AFTER) {
+        clearInterval(tick);
+        mount();
+      }
+    }, 1000);
+    return;
+  }
 
   const end = document.querySelector('footer') ?? document.body.lastElementChild;
 
