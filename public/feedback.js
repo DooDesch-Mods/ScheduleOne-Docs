@@ -25,8 +25,9 @@
  *   data-after     ask after N seconds of use instead of at the end of the page (see below).
  *   data-question  the question itself, for a site where "page" is the wrong word.
  *   data-context   name of a global function returning { question, path, reasons } at the moment of asking.
- *                  For an app that routes on the client: location.pathname is the same string in every part
- *                  of it, so without this every vote lands on one row and none of them says what was rated.
+ *                  An app knows two things the URL does not: which of its parts the question is about, and
+ *                  which part of the URL is an id - without that, a page reached as /c/9fK2s1Qp7v becomes
+ *                  its own row and the count that mattered is spread across a hundred of them.
  */
 (() => {
   'use strict';
