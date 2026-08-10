@@ -18,6 +18,15 @@
  *
  * The shape is the 2026 consensus for docs feedback: thumb first, then one lightweight question for the
  * "why", because a bare thumb tells you a page is bad and nothing about what to change.
+ *
+ * ATTRIBUTES
+ *   data-support   support form to hand prose to. Required for the "tell us what happened" link.
+ *   data-event     event name, default page-feedback. The reason event is <name>-reason.
+ *   data-after     ask after N seconds of use instead of at the end of the page (see below).
+ *   data-question  the question itself, for a site where "page" is the wrong word.
+ *   data-context   name of a global function returning { question, path, reasons } at the moment of asking.
+ *                  For an app that routes on the client: location.pathname is the same string in every part
+ *                  of it, so without this every vote lands on one row and none of them says what was rated.
  */
 (() => {
   'use strict';
@@ -32,17 +41,28 @@
   // fits on one screen, so "reached the end" is true the moment it loads - and asking somebody how useful a
   // thing was before they have used it collects an opinion about nothing.
   const AFTER = Number(script?.dataset.after ?? 0);
-  const KEY = `feedback:${location.pathname}`;
+  const QUESTION = script?.dataset.question ?? 'Was this page useful?';
+  const CONTEXT = script?.dataset.context ?? '';
 
   // Nothing to report to, nothing to show. A control that quietly discards clicks is worse than no control.
   if (!SUPPORT && !window.umami) return;
 
-  const REASONS = [
-    ['missing', 'Something is missing'],
-    ['wrong', 'Something is wrong'],
-    ['unclear', 'Hard to follow'],
-    ['lost', 'I could not find it'],
+  const DEFAULT_REASONS = [
+    { value: 'missing', label: 'Something is missing' },
+    { value: 'wrong', label: 'Something is wrong' },
+    { value: 'unclear', label: 'Hard to follow' },
+    { value: 'lost', label: 'I could not find it' },
   ];
+
+  /** Asked once, at the moment of asking, so an app that has moved on since page load answers for where it is now. */
+  const context = () => {
+    try {
+      const fn = CONTEXT ? window[CONTEXT] : null;
+      return (typeof fn === 'function' ? fn() : null) ?? {};
+    } catch {
+      return {};   // a broken hook must not cost the whole control
+    }
+  };
 
   const track = (name, data) => {
     try {
@@ -52,14 +72,13 @@
     }
   };
 
-  const remember = (value) => {
-    try { localStorage.setItem(KEY, value); } catch { /* private mode; asking again is harmless */ }
+  const key = (path) => `feedback:${path}`;
+  const remember = (path, value) => {
+    try { localStorage.setItem(key(path), value); } catch { /* private mode; asking again is harmless */ }
   };
-  const recall = () => {
-    try { return localStorage.getItem(KEY); } catch { return null; }
+  const recall = (path) => {
+    try { return localStorage.getItem(key(path)); } catch { return null; }
   };
-
-  if (recall()) return;   // already answered for this page in this browser
 
   const css = `
     .ddf {
@@ -97,19 +116,11 @@
   style.textContent = css;
   document.head.append(style);
 
-  const box = document.createElement('aside');
-  box.className = 'ddf';
-  box.setAttribute('aria-label', 'Page feedback');
-  // The control replaces its own contents as it goes, so a screen reader has to be told each time.
-  box.setAttribute('aria-live', 'polite');
-
   const el = (tag, props = {}, children = []) => {
     const node = Object.assign(document.createElement(tag), props);
     node.append(...children);
     return node;
   };
-
-  const close = () => box.remove();
 
   /** Prose goes to a place that can answer it, with the page already filled in. */
   const supportLink = (label) => {
@@ -119,62 +130,75 @@
     return href ? el('a', { href, textContent: label, rel: 'noopener' }) : el('span');
   };
 
-  const done = (message, offerDetail) => {
-    box.textContent = '';
-    box.append(el('p', { className: 'ddf-note' }, [
-      document.createTextNode(message),
-      ...(offerDetail ? [document.createTextNode(' '), supportLink('Tell us what happened')] : []),
+  /** Builds the control for one asking: one question, one path, one set of reasons. */
+  const build = ({ question, path, reasons }) => {
+    const box = document.createElement('aside');
+    box.className = 'ddf';
+    box.setAttribute('aria-label', 'Feedback');
+    // The control replaces its own contents as it goes, so a screen reader has to be told each time.
+    box.setAttribute('aria-live', 'polite');
+
+    const close = () => box.remove();
+
+    const done = (message, offerDetail) => {
+      box.textContent = '';
+      box.append(el('p', { className: 'ddf-note' }, [
+        document.createTextNode(message),
+        ...(offerDetail ? [document.createTextNode(' '), supportLink('Tell us what happened')] : []),
+      ]));
+      setTimeout(close, offerDetail ? 12000 : 2500);
+    };
+
+    const askWhy = () => {
+      box.textContent = '';
+      box.append(
+        el('div', { className: 'ddf-row' }, [
+          el('p', { className: 'ddf-q', textContent: 'What was wrong with it?' }),
+          el('button', { className: 'ddf-b ddf-x', type: 'button', textContent: '×', title: 'Dismiss', onclick: close }),
+        ]),
+        el('ul', { className: 'ddf-list' }, reasons.map(({ value, label }) =>
+          el('li', {}, [
+            el('button', {
+              className: 'ddf-b', type: 'button', textContent: label,
+              onclick: () => {
+                track(`${EVENT}-reason`, { reason: value, path });
+                done('Noted, thank you.', true);
+              },
+            }),
+          ]))),
+      );
+    };
+
+    const vote = (helpful) => {
+      remember(path, helpful ? 'yes' : 'no');
+      track(EVENT, { helpful, path });
+      if (helpful) done('Good to hear, thank you.', false);
+      else askWhy();
+    };
+
+    box.append(el('div', { className: 'ddf-row' }, [
+      el('p', { className: 'ddf-q', textContent: question }),
+      // The past tense is a claim: it says the visitor is done. That is only true because mount() below
+      // waits for them to finish - and that is also the moment the answer is worth anything. Showing it on
+      // load would ask about a page nobody has read yet.
+      el('button', {
+        className: 'ddf-b', type: 'button', textContent: '\u{1F44D}',
+        title: 'Yes', ariaLabel: 'Yes',
+        onclick: () => vote(true),
+      }),
+      el('button', {
+        className: 'ddf-b', type: 'button', textContent: '\u{1F44E}',
+        title: 'No', ariaLabel: 'No',
+        onclick: () => vote(false),
+      }),
+      el('button', {
+        className: 'ddf-b ddf-x', type: 'button', textContent: '×',
+        title: 'Dismiss', ariaLabel: 'Dismiss', onclick: close,
+      }),
     ]));
-    setTimeout(close, offerDetail ? 12000 : 2500);
-  };
 
-  const askWhy = () => {
-    box.textContent = '';
-    box.append(
-      el('div', { className: 'ddf-row' }, [
-        el('p', { className: 'ddf-q', textContent: 'What was wrong with it?' }),
-        el('button', { className: 'ddf-b ddf-x', type: 'button', textContent: '×', title: 'Dismiss', onclick: close }),
-      ]),
-      el('ul', { className: 'ddf-list' }, REASONS.map(([value, label]) =>
-        el('li', {}, [
-          el('button', {
-            className: 'ddf-b', type: 'button', textContent: label,
-            onclick: () => {
-              track(`${EVENT}-reason`, { reason: value, path: location.pathname });
-              done('Noted, thank you.', true);
-            },
-          }),
-        ]))),
-    );
+    return box;
   };
-
-  const vote = (helpful) => {
-    remember(helpful ? 'yes' : 'no');
-    track(EVENT, { helpful, path: location.pathname });
-    if (helpful) done('Good to hear, thank you.', false);
-    else askWhy();
-  };
-
-  box.append(el('div', { className: 'ddf-row' }, [
-    el('p', { className: 'ddf-q', textContent: 'Was this page useful?' }),
-    // The past tense is a claim: it says the visitor is done. That is only true because mount() below waits
-    // for them to finish - and that is also the moment the answer is worth anything. Showing it on load
-    // would ask about a page nobody has read yet.
-    el('button', {
-      className: 'ddf-b', type: 'button', textContent: '\u{1F44D}',
-      title: 'Yes', ariaLabel: 'Yes, this page was useful',
-      onclick: () => vote(true),
-    }),
-    el('button', {
-      className: 'ddf-b', type: 'button', textContent: '\u{1F44E}',
-      title: 'No', ariaLabel: 'No, this page was not useful',
-      onclick: () => vote(false),
-    }),
-    el('button', {
-      className: 'ddf-b ddf-x', type: 'button', textContent: '×',
-      title: 'Dismiss', ariaLabel: 'Dismiss', onclick: close,
-    }),
-  ]));
 
   /**
    * When to ask. Two triggers, because two kinds of page.
@@ -187,9 +211,18 @@
    * configurator fits on one screen, so the end is in view immediately and the reading trigger would ask
    * before anyone had touched it.
    */
+  let asked = false;
   const mount = () => {
-    if (box.isConnected) return;
-    document.body.append(box);
+    if (asked) return;
+    const ctx = context();
+    const path = ctx.path ?? location.pathname;
+    if (recall(path)) return;   // already answered for this page in this browser
+    asked = true;
+    document.body.append(build({
+      question: ctx.question ?? QUESTION,
+      path,
+      reasons: ctx.reasons ?? DEFAULT_REASONS,
+    }));
   };
 
   if (AFTER > 0) {
