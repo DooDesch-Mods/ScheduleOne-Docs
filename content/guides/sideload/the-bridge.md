@@ -138,9 +138,11 @@ fetch('https://api.example.com/status')
 
 ## What a page cannot reach
 
-The page is sandboxed to this list. There is no `window`, no `navigator`, no `localStorage`, no file access, no
-clipboard, no timers other than the four standard ones. If your app needs something else, the answer is almost
-always "put it behind an `s1.call`" - your **mod** is ordinary C# with the whole game in reach.
+The page is sandboxed to this list. There is no `navigator`, no file access, no clipboard, and no timers beyond
+the four standard ones plus `requestAnimationFrame`. `window` exists as an alias for the global object, and
+`localStorage` and `sessionStorage` write into the same per-app store as `s1.storage` - neither reaches the
+machine. If your app needs something else, the answer is almost always "put it behind an `s1.call`" - your
+**mod** is ordinary C# with the whole game in reach.
 
 The exceptions, which no `s1.call` can fix, are in **[Phone Integration](/mods/sideload/guides/phone-integration/)** under what the
 phone does not give a page.

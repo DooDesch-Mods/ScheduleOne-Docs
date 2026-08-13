@@ -10,11 +10,11 @@ parsed and thrown away** - your rule still loads, that one declaration simply do
 Since 1.12.0 none of that happens quietly. The log names every rule the engine could not use, once per app, with
 the value that got lost:
 
-- a property with no case at all, which 1.9.0 already reported
-- a value the parsers cannot read: `padding: 1rem`, `color: oklch(...)`, `width: calc(100% - 8px)`
-- a value they read and the layout then ignores: `align-items: baseline`, `position: relative`, `margin: 0 auto`
+- a property with no case at all, which 1.9.0 already reported: `backdrop-filter`, `background-size`, `animation`
+- a value the parsers cannot read, which drops that one declaration
+- a value they read and the layout then ignores: `display: list-item`, `outline: auto`, `resize: vertical`
 - a selector the DOM library rejected, which takes its whole rule with it
-- an at-rule block skipped whole: `@media (min-width: ...)`, `@keyframes`, `@layer`, `@import`
+- a `@media` block no orientation on this screen can satisfy, and `@keyframes` and `@import`, which are skipped whole
 
 The second and third of those are the ones that used to cost an afternoon, because the property looked
 supported and was. Read the log before you read this page - it tells you about your stylesheet, and this page
@@ -25,24 +25,49 @@ whatever the real panel measures, so one stylesheet fits every resolution.
 
 ## Supported
 
-**Box:** `display` (`flex`/`block`/`inline-block` all mean flex, plus `none`), `width`, `height`, `min-width`,
+**Box:** `display` (`flex`, `block`, `inline-block`, `grid`, `list-item`, `none`), `width`, `height`, `min-width`,
 `min-height`, `max-width`, `max-height`, `padding`, `margin`, `border`, `border-width`, `border-color`,
 `border-radius` and every per-side and per-corner longhand, `position: absolute`/`relative`/`static`, `top`,
-`right`, `bottom`, `left`, `inset`, `overflow`, `overflow-x`, `overflow-y`, `opacity`.
+`right`, `bottom`, `left`, `inset`, `overflow`, `overflow-x`, `overflow-y`, `opacity`, `z-index`.
+
+Every box is a flex container underneath - that is the only box this engine has - but since 1.31.0 `block` and
+`flex` no longer behave the same: **a box only shrinks its children if it says `display: flex`** (or
+`flex-direction`, `flex-wrap`, `flex-flow`). Anything else overflows, the way a block does. That is the one
+difference worth knowing before you pick a value.
+
+**Grid:** `grid-template-columns`, `grid-template-rows`, `grid-template-areas`, `grid-template`, `grid-auto-flow`,
+`grid-auto-columns`, `grid-auto-rows`, `grid-column`, `grid-row` and their `-start`/`-end` longhands, `grid-area`,
+`justify-items`, `justify-self`, `place-items`, `place-self`. `fr`, `repeat()` with `auto-fill` and `auto-fit`,
+`minmax()`, `min-content` and `max-content` are read. Grid is real layout here, not a fallback to flex.
 
 `position: fixed` is a **top layer**, added in 1.9.0: the box is measured against the whole phone screen rather
 than its parent, drawn over everything else, and takes the clicks and the wheel while it is up. Write it
 anywhere in the page - inside a scrolling list is fine, it still covers the screen - which is what makes it the
 right tool for a dialog that asks before something you cannot undo.
 
-**Flex:** `flex`, `flex-grow`, `flex-shrink`, `flex-basis`, `flex-direction`, `flex-wrap`, `justify-content`,
-`align-items`, `align-self`, `gap`, `row-gap`, `column-gap`.
+**Flex:** `flex`, `flex-grow`, `flex-shrink`, `flex-basis`, `flex-direction`, `flex-wrap`, `flex-flow`,
+`justify-content`, `align-items` (including `baseline`), `align-self`, `align-content`, `gap`, `row-gap`,
+`column-gap`.
 
-**Paint:** `background`, `background-color`, `linear-gradient()` with exactly two colour stops and an optional
-leading angle, `box-shadow` (outer only), `color`.
+**Paint:** `background`, `background-color`, `background-image`, `linear-gradient()` with exactly two colour stops
+and an optional leading angle, `box-shadow` (outer only), `color`, `outline` with `outline-width`,
+`outline-color`, `outline-offset` and `outline-style`.
 
-**Text:** `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`, `text-align`, `white-space`
-(`nowrap`, `pre`, `pre-wrap`), `text-overflow: ellipsis`, `letter-spacing`, `-s1-mono-advance`.
+Colours can be written the way a build tool writes them: `#rgb`, `#rrggbb`, `rgb()`, `rgba()`, `hsl()`, `hsla()`,
+`oklch()`, `oklab()`, `lab()`, `lch()`, `color-mix()` and `currentColor` all resolve.
+
+**Text:** `font-family`, `font-size`, `font-weight`, `font-style`, `line-height`, the `font` shorthand,
+`text-align`, `text-decoration`, `text-transform`, `white-space` (`nowrap`, `pre`, `pre-wrap`),
+`text-overflow: ellipsis`, `letter-spacing`, `word-break`, `overflow-wrap`, `word-wrap`, `vertical-align`
+(`top`, `middle`, `bottom`, `baseline`), `tab-size`, `-s1-mono-advance`.
+
+**Lists:** `list-style-type` picks between `disc`, `circle`, `square`, `decimal` and `none`, and `start` on an
+`<ol>` counts from there.
+
+**Interaction:** `pointer-events: none` takes a box out of hit testing, and `touch-action: none` says a box
+handles its own drag so the scroll area above it does not steal the gesture - what a pannable map needs.
+
+`inherit` works on every property the cascade can carry down.
 
 `font-family: monospace` is the one to reach for first: the game ships no monospaced font, so Sideload builds one
 from the machine's own file, trying Consolas, Cascadia Mono, Lucida Console, Courier New and DejaVu Sans Mono in
@@ -67,19 +92,28 @@ is two lines of CSS. `-s1-ghost-color` styles the ghost written by the `data-gho
 `background-color`, `border-color` and the transforms. An interrupted tween continues from the frame on screen
 rather than snapping.
 
-**Other:** custom properties and `var()`, `!important`, inline `style` attributes, `@media (orientation:
-portrait|landscape)`.
+**Other:** custom properties and `var()`, `!important`, inline `style` attributes, `calc()`, `min()`, `max()`
+and `clamp()` nested in any order.
 
-Units are **`px` and `%` only**.
+**Units:** `px`, `%`, `em`, `rem`, `lh`, `rlh`, `ch`, `vh`, `vw`, `vmin`, `vmax` (with the `svh`/`lvh`/`dvh`
+family reading as `vh`), and the physical `pt`, `pc`, `cm`, `mm`, `in` at the CSS reference of 96 dpi. A
+stylesheet pasted from the web keeps the sizes it names.
+
+**Media queries** are evaluated rather than skipped. A width or height breakpoint resolves to the orientation it
+really means on this screen - `(min-width: 640px)` **is** landscape here - and `hover`, `pointer` and the media
+types are answered. Only a query no orientation can satisfy is reported and dropped.
 
 ## Not supported - say so rather than trying
 
-`box-sizing` (border-box is always in force), `align-content`, `place-*`, CSS Grid, `float`,
-`display: inline`/`table`, `z-index` (paint order is document order), `animation`/`@keyframes`, `cursor`,
-`visibility`, `outline`, `text-decoration`, `text-transform`, `background-image: url()`, `background-size`,
-`background-position`, `background-repeat`, `filter`, `backdrop-filter`, `inset` box-shadow (the `inset` keyword
-makes the whole declaration drop), `hsl()`, `em`, `rem`, `vh`, `vw`, `calc()`, and any media query other than
-orientation.
+`box-sizing: content-box` (border-box is always in force), `align-content: stretch`, `float`,
+`display: inline`/`table`, `animation`/`@keyframes`, `visibility`, `background-image: url()`, `background-size`,
+`background-position`, `background-repeat`, `filter`, `backdrop-filter`, `text-indent`, `resize`,
+`font-variant-numeric`, and `subgrid`.
+
+`inset` box-shadow layers are skipped, but only that layer - the rest of the declaration still draws. A handful
+of properties are **accepted and deliberately do nothing** because there is nothing here to do: `cursor`,
+`user-select`, `will-change`, `scrollbar-width`, `-webkit-font-smoothing` and the other compositor and
+touch-scroll hints. Those are not reported as lost, because nothing was lost.
 
 ## Selectors
 
@@ -88,6 +122,10 @@ Everything AngleSharp's `querySelectorAll` accepts: type, class, id, descendant,
 `:disabled` - **only on the last compound**. `.card:hover .title` matches, but the hover part is ignored, so the
 rule applies all the time.
 
+Pseudo-elements: `::before` and `::after` with `content`, and `::placeholder` (also spelled
+`::-webkit-input-placeholder`) for the hint text in a field. Without a `::placeholder` rule the hint stays the
+field's own type, faded, as it always was.
+
 State rules **repaint, they do not re-lay-out**. `:hover` changing `background`, `border-color` or `color`
 works. `:hover` changing `width`, `padding` or `display` does not. A style written from script takes the same
 path for a shorter list of properties and rebuilds the page for the rest - see
@@ -95,14 +133,13 @@ path for a shorter list of properties and rebuilds the page for the rest - see
 
 Cascade order: `!important` > inline `style` > specificity > document order.
 
-## Four rules that differ from a browser
+## Three rules that differ from a browser
 
-1. **Border-box everywhere.** `width` includes padding and border. Declaring `box-sizing` does nothing.
-2. **Auto margins are zero.** `margin: 0 auto` does not centre. Use `justify-content`, `align-items` or
-   `align-self` - the same trade React Native makes.
-3. **`align-content` is not implemented.** Wrapped lines stack tightly from the cross start with the cross gap
-   between them.
-4. **Height never feeds back into width.** Widths resolve first, text is measured against a known width, and
+1. **Border-box everywhere.** `width` includes padding and border. Declaring `box-sizing: content-box` does
+   nothing.
+2. **A box is a flex container unless it says otherwise.** The default direction is a column, not a row, so a
+   row needs `flex-direction: row` written out. There is no block flow, no line boxes and no margin collapsing.
+3. **Height never feeds back into width.** Widths resolve first, text is measured against a known width, and
    the resulting height can never change a width. That is what keeps a layout pass finite instead of oscillating.
 
 ## The automatic minimum, and why your list will not scroll
@@ -162,6 +199,9 @@ of, and the edges that follow from both are in **[Clipping and Scrolling](/mods/
   tofu. Write the word, or draw the shape with boxes. Use three full stops.
 * **HTML tags with behaviour:** `input` and `textarea` become a real `TMP_InputField`; `button`, `a`, `input`
   and `textarea` always get a hit target. `head`, `script`, `style`, `title`, `meta` and `link` are skipped.
+* **An input's `type` is read.** A checkbox and a radio are a box with a state that flips on click, clears its
+  radio group and raises `input` and `change` - which is what a controlled React component listens for. Clicking
+  the label works too. `hidden` is no box at all, and `button` draws its `value` as a label.
 
 ## Text compilation
 
@@ -177,20 +217,49 @@ An element with a mix of text and block children does not compile that way, and 
 default. The full list is written to the log in a development build - see
 **[Dev Loop and Testing](/mods/sideload/guides/dev-loop-and-testing/)**.
 
+A stack is read the way a browser reads it: `Inter, game-comic` reaches the comic face instead of giving up on
+the first name the machine does not have.
+
+## Browser defaults, if you ask for them
+
+An `<h1>` here is not big and a `<p>` has no spacing, because there is no user-agent stylesheet in the cascade.
+Since 1.30.0 there is one, behind a meta tag:
+
+```html
+<meta name="sideload" content="web-defaults">
+```
+
+That turns on heading sizes, paragraph spacing, list indent, bold, italic and monospace for `code` and `pre`,
+on the lowest cascade layer there is - **every rule you write beats it**. It is opt-in rather than on because
+the shipped apps were written against a renderer without it, and a margin appearing around every paragraph in
+all of them at once is not an improvement.
+
 ## How far this is from a browser
 
 Written down rather than guessed at. The
-[gap register](https://github.com/DooDesch-Mods/ScheduleOne-Workspace/tree/main/docs/Sideload/gaps) has 282
-entries across CSS, layout, paint, HTML, the DOM API and events, each with a file and line in the engine, and
-each marked with what it blocks.
+[gap register](https://github.com/DooDesch-Mods/ScheduleOne-Workspace/tree/main/docs/Sideload/gaps) has 292
+entries across CSS, layout, paint, HTML, the DOM API and events, 214 of them still open, each with a file and
+line in the engine and each marked with what it blocks.
 
 The numbers, measured by running real stylesheets through this parser and cascade:
 
 | Stylesheet | Declarations that never arrive |
 |---|---|
-| The 14 shipped Sideload apps | 2 percent |
-| A Tailwind v3 build | 66 percent |
-| A Tailwind v4 build | all of it - `@layer` wraps everything, and the block is skipped whole |
+| The 14 shipped Sideload apps | 0.1 percent |
+| Showcase: React 19 + Tailwind v4, through the Vite plugin | 9 percent |
+| A Tailwind v3 build | 14 percent |
+| A Tailwind v4 build | 18 percent |
 
-Do not point a build tool at this engine yet. Write the CSS by hand against the list above.
+**Point a build tool at it.** This page said the opposite for most of 1.x, and the reason it changed is the
+same table read backwards: at 1.13.1 a Tailwind v4 build lost *everything*, because `@layer` wrapped the whole
+sheet and the block was skipped whole. Then `@layer`, `rem`, `calc()`, `oklch()` and media queries each landed,
+and each of them was most of a Tailwind sheet on its own.
+
+`@doodesch/sideload-vite` closes the rest by rewriting what a web toolchain says into the spelling this engine
+reads - logical properties to physical, nesting flattened, Tailwind's five-slot shadow chain down to the layer
+that gets drawn. See **[Dev Loop and Testing](/mods/sideload/guides/dev-loop-and-testing/)** for the build, and
+**[Your First App](/mods/sideload/guides/your-first-app/)** for the one command that sets it up.
+
+Hand-written CSS against the list above is still the smallest thing that works, and the shipped apps are written
+that way. It is no longer the only thing that works.
 

@@ -29,6 +29,11 @@ Hard rules of the loop, each of which has cost someone an hour:
 
 The same mechanism is what lets players reskin an app, so it is not a development-only hack.
 
+The second rule is the one a build step removes for you: `npm run dev` in a project scaffolded with
+`@doodesch/create-sideload-app` writes the bundle straight into `Mods/<appId>/` on every save, so the override
+folder is never stale because it is never hand-copied. See
+**[Your First App](/mods/sideload/guides/your-first-app/)**.
+
 ## The F9 overlay
 
 **F9** shows, per mounted page: fps, the viewport size and scale, box / rule / wired counts, the render count
@@ -43,6 +48,21 @@ driven by `transform` leaves the number flat while it moves; the same pan writte
 frame. See **[JavaScript, DOM and Events](/mods/sideload/guides/javascript-dom-and-events/)**.
 
 **Ctrl+F10** outlines every box in magenta and every text leaf in cyan.
+
+## Console commands
+
+Debug builds only, and typed into the game's own dev console. They exist because a screenshot cannot tell
+scrolling from cropping, and nothing outside the game can press a key or turn a wheel.
+
+| Command | What it does |
+|---|---|
+| `sideloadkeys` | every key claim, in the order the key would be offered, and whether the gate is open |
+| `sideloadkey <key>` | delivers that press down the same path a real one takes, gate and all - `sideloadkey Enter` |
+| `sideloadwheel [notches] [appId]` | turns the wheel over the newest page through the real raycast and names what took the notch. Negative scrolls down |
+| `sideloadsurface [off\|<width> <height>]` | mounts the selftest bundle in a panel over the middle of the screen, at a size you pick |
+
+The console needs `Settings.ConsoleEnabled` and the host role. It is a live toggle in the settings window, so
+there is no save to recreate for it.
 
 `[Sideload/layout]` in the log is a full rect dump after every render - `x y w h right bottom` per node, plus the
 compiled text verbatim for leaves. When a box is the wrong size, this says so numerically instead of you
@@ -98,8 +118,9 @@ and compares them with the engine.
 A browser `Element` has about three hundred members. The engine's wrapper has fifty-eight, and the gap is all one
 bug: `el.closest('.card')` works perfectly in Chrome and returns nothing at all in the game, with no error either
 side. So the shell hands your page proxied elements that name the first use of anything the engine lacks, and
-shadows the globals it never installs - `window`, `localStorage`, `navigator`, `requestAnimationFrame`,
-`getComputedStyle`. It names rather than throws; findings go to the console and to a panel under the stage.
+shadows the globals it never installs - `navigator`, `location`, `getComputedStyle`, `matchMedia`,
+`XMLHttpRequest`, `MutationObserver`. It names rather than throws; findings go to the console and to a panel
+under the stage.
 
 The allowlist is generated from `Sideload/Script/DomApi.cs`, so it cannot drift from the engine.
 
@@ -157,16 +178,21 @@ means nothing new, 2 means it named something and the build should stop.
 | `--json <file>` | The same run machine-readable: one record per finding with `kind`, `subject`, `detail`, `file`, `count` and a ready-to-print `message`. |
 | `--out <file.md>` | The full table as Markdown instead of stdout. |
 
-Run it once with `--update-baseline` before you turn the gate on. Every app has losses today - the fourteen
-shipped bundles report 78 between them - and a check that fails 78 times on its first run gets removed rather
-than obeyed. The baseline is the file you then delete lines from.
+Run it once with `--update-baseline` before you turn the gate on, then delete lines from that file. The fourteen
+shipped bundles report four findings between them today, so the gate is cheap to hold once you are there - it is
+the first run on an app written against a browser that produces a list nobody wants to read.
 
-A Vite plugin needs no formatting of its own:
+Piping it into a Vite build needs no formatting of its own:
 
 ```js
 for (const d of JSON.parse(report).diagnostics)
   if (d.new) this.warn(`${d.file}: ${d.message} (${d.count}x)`);
 ```
+
+If you build with **[`@doodesch/sideload-vite`](https://www.npmjs.com/package/@doodesch/sideload-vite)**, most
+of what this gate would have caught never reaches it: the plugin rewrites logical properties to physical,
+flattens nesting, and collapses Tailwind's five-slot shadow chain to the layer that gets drawn. The gate is then
+about what is left, which is a much shorter list.
 
 ## Headless tests
 

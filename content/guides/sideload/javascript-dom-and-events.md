@@ -12,10 +12,17 @@ chaining, nullish coalescing, destructuring, template literals, generators, `asy
 
 ## Globals
 
-`document`, `s1`, `console`, `fetch`, `Promise`, `setTimeout`, `setInterval`, `clearTimeout`, `clearInterval`.
+`document`, `s1`, `console`, `fetch`, `Promise`, `FormData`, `setTimeout`, `setInterval`, `clearTimeout`,
+`clearInterval`, `requestAnimationFrame`, `cancelAnimationFrame`, `devicePixelRatio`, `addEventListener`,
+`removeEventListener`, `localStorage`, `sessionStorage`, and `window`, `self` and `globalThis`, which are all
+three the global object itself.
 
-That is the whole list. There is no `window`, no `navigator`, no `localStorage` - `s1.storage` replaces the
-last one. Timers are driven by the mod's update loop rather than by threads, so they fire on the Unity main
+`localStorage` and `sessionStorage` reach the same store as `s1.storage`, so a library that calls `getItem`
+works without knowing where it is.
+
+There is still no `navigator`, no file access, and no DOM beyond what this page lists - the element wrapper has
+fifty-eight members against a browser's three hundred, so `el.closest('.card')` returns nothing rather than
+throwing. Timers are driven by the mod's update loop rather than by threads, so they fire on the Unity main
 thread and never race with your C#.
 
 ## Engine limits

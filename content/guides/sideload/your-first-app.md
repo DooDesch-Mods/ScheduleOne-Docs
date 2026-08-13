@@ -1,13 +1,69 @@
 ---
 title: "Your First App"
-description: "Six steps, about twenty minutes to an icon on the in-game phone."
+description: "One command, or six steps by hand, to an icon on the in-game phone."
 sidebar:
   order: 2
 ---
-Six steps, about twenty minutes to an icon on the in-game phone. Follow them in order - step 6 only works if you
-do it before you launch the game.
+Two routes to the same icon on the in-game phone. Take the first if you have Node; the second is the same thing
+written out, and it is worth reading either way because it is what the scaffolder generates.
 
-## 1. Project layout
+## One command
+
+```
+npx @doodesch/create-sideload-app my-app --template preact
+cd my-app
+npm install
+npm run dev
+```
+
+`dev` rebuilds on save and copies the bundle into `Mods/<appId>/`, where Sideload picks it up without a game
+restart. Point it at your install once with `--deploy "D:/.../Schedule I/Mods"` and it stays pointed.
+
+It writes the web bundle, the C# mod that registers it, a Vite build that produces exactly the three files the
+engine reads, and TypeScript types generated from the engine's own source - so the editor knows this `document`
+has six members and an element is not a browser `Element`.
+
+`--template react` and `--template vanilla` are the other two. **Preact is the default because of load time,
+not render time:** the script engine parses your framework every time a page opens, so its size is a load-time
+cost here rather than a download cost, which is the opposite of the web.
+
+| | bundle | load | mount 100 rows |
+|---|---|---|---|
+| `preact` (default) | 14 kB | 37 ms | 53 ms |
+| `react` | 139 kB | 113 ms | 54 ms |
+| `vanilla` | 0 | 0 | - |
+
+React is fully supported and 113 ms is affordable. It just buys nothing the 37 ms does not.
+
+The mod half is a starting point rather than a finished build: fill in the two `PATH\TO` hints in the csproj
+(MelonLoader, and `Sideload.cs`) and it compiles to one DLL with the bundle embedded.
+
+The two packages are [`@doodesch/create-sideload-app`](https://www.npmjs.com/package/@doodesch/create-sideload-app)
+and [`@doodesch/sideload-vite`](https://www.npmjs.com/package/@doodesch/sideload-vite), both MIT, both in the
+Sideload repo under `tools/`. `@doodesch/sideload-vite` is also the way into an existing Vite project:
+
+```
+npm install -D @doodesch/sideload-vite
+```
+
+```js
+import { defineConfig } from 'vite';
+import { sideload } from '@doodesch/sideload-vite';
+
+export default defineConfig({
+  plugins: [sideload({ appId: 'myapp', deploy: 'D:/games/Schedule I/Mods' })],
+});
+```
+
+Want to read a real one before writing your own? `examples/showcase` in the Sideload repo is React 19, Tailwind
+v4, Vite and TypeScript in a folder you can copy.
+
+## By hand
+
+Six steps, about twenty minutes. Follow them in order - step 6 only works if you do it before you launch the
+game.
+
+### 1. Project layout
 
 ```
 MyMod/
@@ -23,7 +79,7 @@ MyMod/
 vanilla app icons are. Without it your app gets a flat coloured square derived from its id: legible, but it says
 nothing about what the app is.
 
-## 2. MyMod.csproj
+### 2. MyMod.csproj
 
 No Unity reference, no IL2CPP interop, no reference to Sideload. Only MelonLoader plus the shim as source.
 
@@ -63,7 +119,7 @@ No Unity reference, no IL2CPP interop, no reference to Sideload. Only MelonLoade
 Do not drop the `LogicalName`. Without it MSBuild mangles the folder names into the resource name,
 `Apps.Register` finds nothing, and what you get is a blank app rather than an error.
 
-## 3. Core.cs
+### 3. Core.cs
 
 ```csharp
 using MelonLoader;
@@ -117,7 +173,7 @@ with a soft dependency and only check `Apps.Available` if you want a fallback UI
 **Do not `Emit` from inside an `OnCall` handler.** That re-enters the script engine while it is still on the
 stack. Emit from your update loop, as above.
 
-## 4. index.html
+### 4. index.html
 
 No `<html>`, `<head>` or `<body>` boilerplate - the parser supplies them.
 
@@ -141,7 +197,7 @@ No `<html>`, `<head>` or `<body>` boilerplate - the parser supplies them.
 <script src="app.js"></script>
 ```
 
-## 5. app.css
+### 5. app.css
 
 ```css
 body {
@@ -170,7 +226,7 @@ Two things bite everyone once. **Every box is a flex column by default**, so a r
 `flex-direction: row` explicitly. And **a scrollable box needs `min-height: 0`** next to its `flex: 1`, or the
 automatic minimum keeps it as tall as its content and it never scrolls.
 
-## 6. app.js and the dev folder
+### 6. app.js and the dev folder
 
 ```js
 const $ = (id) => document.getElementById(id);

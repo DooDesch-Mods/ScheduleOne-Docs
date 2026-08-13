@@ -49,8 +49,16 @@ It has **zero references** - no MelonLoader, no Unity, no IL2CPP interop - and f
 reflection. Referencing `Sideload.Api.dll` instead behaves identically, at the cost of a second assembly your
 users have to install.
 
-Either way your mod ships as one DLL and works whether or not Sideload is present. See
-**[Your First App](/mods/sideload/guides/your-first-app/)**.
+Either way your mod ships as one DLL and works whether or not Sideload is present.
+
+For the web half there are two npm packages, both MIT:
+
+| Package | What it is |
+|---|---|
+| [`@doodesch/create-sideload-app`](https://www.npmjs.com/package/@doodesch/create-sideload-app) | `npx @doodesch/create-sideload-app my-app` - the bundle, the C# mod, a Vite build and generated types |
+| [`@doodesch/sideload-vite`](https://www.npmjs.com/package/@doodesch/sideload-vite) | the Vite plugin on its own, for a project you already have |
+
+Neither is required. See **[Your First App](/mods/sideload/guides/your-first-app/)** for both routes.
 
 ## Settings
 
