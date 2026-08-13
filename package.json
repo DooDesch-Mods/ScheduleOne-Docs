@@ -6,6 +6,7 @@
   "description": "Documentation for the DooDesch Schedule I mods - overview, guides and generated API reference, ingested straight from the mod repositories.",
   "scripts": {
     "ingest": "node scripts/ingest.mjs",
+    "check:guides": "node scripts/check-guides.mjs",
     "dev": "node scripts/ingest.mjs && astro dev",
     "build": "node scripts/ingest.mjs && astro build && node scripts/bundle-corpus.mjs",
     "build:only": "astro build",

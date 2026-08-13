@@ -60,6 +60,15 @@ jobs:
           key: ingest-${{ github.run_id }}
           restore-keys: ingest-
 
+      # The generated pages cannot go stale; the hand-written guides under content/guides/ can, and did - the
+      # Sideload CSS guide spent nineteen releases denying features the engine had shipped. This reads the
+      # engine's own source and fails on a claim it contradicts. Before the ingest, because it is the cheap
+      # step and there is no point generating a site around a guide that is wrong.
+      - name: Check the guides against the code they describe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/check-guides.mjs
+
       # Reads the org, pulls every mod at its latest release tag, generates the reference. Needs a token
       # only for the API rate limit; every repo it touches is public and it never writes.
       - name: Ingest mods and build the site
