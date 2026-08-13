@@ -57,5 +57,5 @@ Side Hustle gamemode**, so anyone can join your public or password-protected lob
   can stall. Host with **"Required mods only"** (if the gamemode declares a mod policy) so both sides run the same
   curated set.
 
-Still stuck? 🛟 [support.doodesch.de](https://support.doodesch.de).
+Still stuck? 🛟 [support.doodesch.de](https://support.doodesch.de/sidehustle).
 

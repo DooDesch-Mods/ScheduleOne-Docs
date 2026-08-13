@@ -21,8 +21,9 @@ three the global object itself.
 works without knowing where it is.
 
 There is still no `navigator`, no file access, and no DOM beyond what this page lists - the element wrapper has
-fifty-eight members against a browser's three hundred, so `el.closest('.card')` returns nothing rather than
-throwing. Timers are driven by the mod's update loop rather than by threads, so they fire on the Unity main
+67 members against a browser's three hundred, and `dataset`, `scrollTop`, `offsetWidth`, `insertAdjacentHTML`,
+`append` and `prepend` are among the ones missing. A missing member returns nothing rather than throwing, which
+is why the preview shell exists. Timers are driven by the mod's update loop rather than by threads, so they fire on the Unity main
 thread and never race with your C#.
 
 ## Engine limits

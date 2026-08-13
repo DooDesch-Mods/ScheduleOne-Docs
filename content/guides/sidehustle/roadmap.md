@@ -6,6 +6,48 @@ sidebar:
 ---
 Where Side Hustle is and where it is going. Items below "Planned" are intentions, not promises.
 
+## Shipped - 2.4.0
+
+- **Your mods can wait for a lobby instead of loading at startup**, so joining somebody's session stops meaning
+  quit first. Switch it on with `DeferModsUntilLobby`, and name what has to be there regardless - a bridge, an
+  overlay, a profiler - with `AlwaysLoadMods`.
+- **Joining a synced lobby skips the restart.** The host's mods load out of the package cache while you stay on
+  the screen you were on. A mod already running at a different version than the session wants still costs one
+  restart, and the log names the mod and both versions.
+- **The gamemode list shows installed gamemodes that have not loaded yet**, with the name, version and author
+  their own file declares. One click loads and starts it.
+
+## Shipped - 2.3.0
+
+- **A Lobby app on your phone** changes what used to need a new session: name, join password, public or friends
+  only, seats, mod requirement, publishing. Host only, and it applies to the next person who joins.
+- **Chat before you join.** Lobby cards get a Chat button next to Join, and the join screens carry that
+  conversation down the right, so a mod you cannot download becomes a question instead of a dead end. Switch
+  yours off with `AcceptStrangerMessages`, mute one person from the app, or hide the column with
+  `JoinChatPanel`.
+- **A status column in the main menu**: sessions listed, how many take players, the mod profile you booted into,
+  and whether anyone messaged you. Switch it off with `MenuStatePanel`.
+- **Lobby cards say which branch the host plays on**, IL2CPP in green or Mono in red. The two cannot play
+  together, and nothing on the card used to tell you before you tried.
+
+## Shipped - 2.1.0
+
+- **The messenger left home.** Lobby chat was a phone app Side Hustle carried itself; it is a separate mod now,
+  and 1270 lines of transport, store, contacts and screens left with it.
+
+## Shipped - 2.0.0
+
+- **Join a gamemode you do not have installed.** A public gamemode lobby advertises the exact mod files a joiner
+  needs, and Side Hustle fetches them from Thunderstore's official CDN or the mod's own GitHub releases. For
+  anything that still needs a browser (Nexus), the checklist opens the mod's own page and picks the file up from
+  your downloads folder.
+- **Mod Profiles - an in-game mod manager.** Keep separate mod sets and switch between them from the main menu,
+  without touching what your real mod manager sees.
+- **Vanilla co-op with mod sync.** Host your normal savegame as a public lobby and everyone who joins gets your
+  mod set. Optionally your mod *settings* as well, per mod, your choice.
+- **Gamemode sessions list themselves** on the public lobby list, and a gamemode can declare a `DownloadUrl` for
+  players who do not have it.
+
 ## Shipped - 1.8.0
 
 - **Discover what's being played.** The menu also lists gamemodes you don't have installed that have live public
@@ -59,5 +101,5 @@ Where Side Hustle is and where it is going. Items below "Planned" are intentions
 
 - Grouping / categories in the hub list as the number of gamemodes grows.
 
-Got a request? 🛟 [support.doodesch.de](https://support.doodesch.de).
+Got a request? 🛟 [support.doodesch.de](https://support.doodesch.de/sidehustle).
 

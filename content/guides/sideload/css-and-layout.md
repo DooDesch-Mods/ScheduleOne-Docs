@@ -30,6 +30,9 @@ whatever the real panel measures, so one stylesheet fits every resolution.
 `border-radius` and every per-side and per-corner longhand, `position: absolute`/`relative`/`static`, `top`,
 `right`, `bottom`, `left`, `inset`, `overflow`, `overflow-x`, `overflow-y`, `opacity`, `z-index`.
 
+`z-index` needs a positioned box, exactly as in CSS: on a `position: static` box it is reported and ignored, and
+everything without one paints in document order.
+
 Every box is a flex container underneath - that is the only box this engine has - but since 1.31.0 `block` and
 `flex` no longer behave the same: **a box only shrinks its children if it says `display: flex`** (or
 `flex-direction`, `flex-wrap`, `flex-flow`). Anything else overflows, the way a block does. That is the one
@@ -49,9 +52,13 @@ right tool for a dialog that asks before something you cannot undo.
 `justify-content`, `align-items` (including `baseline`), `align-self`, `align-content`, `gap`, `row-gap`,
 `column-gap`.
 
-**Paint:** `background`, `background-color`, `background-image`, `linear-gradient()` with exactly two colour stops
-and an optional leading angle, `box-shadow` (outer only), `color`, `outline` with `outline-width`,
-`outline-color`, `outline-offset` and `outline-style`.
+**Paint:** `background`, `background-color`, `background-image` **for gradients only**, `linear-gradient()` with
+exactly two colour stops and an optional leading angle, `box-shadow` (outer only), `color`, `outline` with
+`outline-width`, `outline-color` and `outline-offset`.
+
+`outline` draws a focus ring outside the box without moving it. `outline-style` is read only far enough to turn
+the ring off with `none` or `hidden` - there is one outline appearance, so `dashed` and `dotted` are accepted and
+draw the same solid ring.
 
 Colours can be written the way a build tool writes them: `#rgb`, `#rrggbb`, `rgb()`, `rgba()`, `hsl()`, `hsla()`,
 `oklch()`, `oklab()`, `lab()`, `lch()`, `color-mix()` and `currentColor` all resolve.
@@ -246,18 +253,19 @@ The numbers, measured by running real stylesheets through this parser and cascad
 | Stylesheet | Declarations that never arrive |
 |---|---|
 | The 14 shipped Sideload apps | 0.1 percent |
-| Showcase: React 19 + Tailwind v4, through the Vite plugin | 9 percent |
-| A Tailwind v3 build | 14 percent |
-| A Tailwind v4 build | 18 percent |
+| Showcase: React 19 + Tailwind v4, through the Vite plugin | 2.3 percent |
+| A Tailwind v3 build, raw | 8.4 percent |
+| A Tailwind v4 build, raw | 13.2 percent |
 
 **Point a build tool at it.** This page said the opposite for most of 1.x, and the reason it changed is the
 same table read backwards: at 1.13.1 a Tailwind v4 build lost *everything*, because `@layer` wrapped the whole
 sheet and the block was skipped whole. Then `@layer`, `rem`, `calc()`, `oklch()` and media queries each landed,
 and each of them was most of a Tailwind sheet on its own.
 
-`@doodesch/sideload-vite` closes the rest by rewriting what a web toolchain says into the spelling this engine
-reads - logical properties to physical, nesting flattened, Tailwind's five-slot shadow chain down to the layer
-that gets drawn. See **[Dev Loop and Testing](/mods/sideload/guides/dev-loop-and-testing/)** for the build, and
+`@doodesch/sideload-vite` closes most of the rest by rewriting what a web toolchain says into the spelling this
+engine reads - logical properties to physical, nesting flattened, Tailwind's five-slot shadow chain down to the
+layer that gets drawn. The two Tailwind v4 rows in the table are the same framework with and without it: 13.2
+percent lost raw, 2.3 percent through the plugin. See **[Dev Loop and Testing](/mods/sideload/guides/dev-loop-and-testing/)** for the build, and
 **[Your First App](/mods/sideload/guides/your-first-app/)** for the one command that sets it up.
 
 Hand-written CSS against the list above is still the smallest thing that works, and the shipped apps are written

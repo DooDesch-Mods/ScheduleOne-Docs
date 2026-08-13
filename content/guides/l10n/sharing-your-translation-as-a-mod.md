@@ -79,6 +79,6 @@ MelonLoader console for `[L10n]` warnings - they mean the JSON has a syntax erro
 names the file.
 
 And if you'd rather have the translation shipped inside the mod itself: send it to me
-via [support.doodesch.de](https://support.doodesch.de) - full translations are very
+via [support.doodesch.de](https://support.doodesch.de/l10n) - full translations are very
 welcome and get credited.
 

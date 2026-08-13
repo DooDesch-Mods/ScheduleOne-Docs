@@ -50,5 +50,5 @@ client without the content cannot render it. See [Multiplayer Saves and NPCs](/m
 Release build it will not exist - use a DEBUG build to export them, or start from the example pack's aligned
 PNGs.
 
-Still stuck? 🛟 [support.doodesch.de](https://support.doodesch.de).
+Still stuck? 🛟 [support.doodesch.de](https://support.doodesch.de/inkorporated).
 

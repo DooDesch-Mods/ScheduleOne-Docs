@@ -83,6 +83,6 @@ so you can also just override a couple of built-in lines instead of translating 
 - Sharing your translation with others is very welcome - it's just that one file. You
   can publish it as its own installable package, see
   [Sharing your translation as a mod](/mods/l10n/guides/sharing-your-translation-as-a-mod/). Or send it
-  to me (see [support.doodesch.de](https://support.doodesch.de)) and I'll consider
+  to me (see [support.doodesch.de](https://support.doodesch.de/l10n)) and I'll consider
   shipping it with the mod so everyone gets it out of the box.
 
