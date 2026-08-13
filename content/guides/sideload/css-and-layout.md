@@ -243,10 +243,9 @@ all of them at once is not an improvement.
 
 ## How far this is from a browser
 
-Written down rather than guessed at. The
-[gap register](https://github.com/DooDesch-Mods/ScheduleOne-Workspace/tree/main/docs/Sideload/gaps) has 292
-entries across CSS, layout, paint, HTML, the DOM API and events, 214 of them still open, each with a file and
-line in the engine and each marked with what it blocks.
+Written down rather than guessed at. The gap register holds 292 entries across CSS, layout, paint, HTML, the DOM
+API and events, 214 of them still open, each anchored to a file and line in the engine and each marked with what
+it blocks. It is kept in a private working repository, so what follows is the part of it worth publishing.
 
 The numbers, measured by running real stylesheets through this parser and cascade:
 

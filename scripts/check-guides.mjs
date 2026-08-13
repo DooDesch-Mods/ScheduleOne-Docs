@@ -228,11 +228,23 @@ if (OFFLINE) {
     const devtools = Object.fromEntries(devtoolsPaths.map((p) => [p, source(SIDELOAD, tag, p)]));
     checkConsoleCommands(devtools);
 
+    /*
+      The measured reports live in a PRIVATE working repository, so this half runs for whoever changes the
+      numbers and not on the public runner, whose token is scoped to this repo and gets a 404.
+
+      Skipped rather than failed, and said out loud rather than swallowed: a check nobody can satisfy gets
+      deleted, and a check that goes quiet gets believed. The four checks above read the public Sideload source
+      and keep gating everywhere.
+    */
     const names = ['SHIPPED-APPS', 'SHOWCASE', 'TAILWIND-V3', 'TAILWIND-V4'];
-    const reports = Object.fromEntries(
-      names.map((n) => [n, source(WORKSPACE, 'main', `docs/Sideload/gaps/measured/${n}.md`)]),
-    );
-    checkMeasured(reports);
+    try {
+      const reports = Object.fromEntries(
+        names.map((n) => [n, source(WORKSPACE, 'main', `docs/Sideload/gaps/measured/${n}.md`)]),
+      );
+      checkMeasured(reports);
+    } catch {
+      notes.push('measured: SKIPPED - no access to the gap register, so the percentages went unchecked');
+    }
   } catch (err) {
     console.error('check-guides: could not read the sources it checks against.');
     console.error(String(err.stderr ?? err.message ?? err).trim());
