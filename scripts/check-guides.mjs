@@ -191,6 +191,36 @@ function checkMeasured(reports) {
   notes.push(`measured: ${measured.length} reports, ${quoted.length} rows in the guide`);
 }
 
+/**
+ * A member the guides name as MISSING, which the wrapper has.
+ *
+ * This is the check written from being caught by it. Both guides used `el.closest('.card')` as the example of
+ * something a browser has and this engine does not - for long enough that the preview tool's own header comment
+ * still says it too. `closest` has since been implemented, so the one sentence teaching authors what the fence
+ * is for was itself the stale claim.
+ *
+ * The exact member COUNT is deliberately not checked. It moves with every helper added, it tells a reader
+ * almost nothing, and a number under a gate is a gate that fails for no reader benefit - so the guides say
+ * "under seventy" and this checks the part an author acts on.
+ */
+function checkMissingMembers(domApi) {
+  const js = guide('sideload/javascript-dom-and-events.md');
+  const claimed = js.match(/are among the ones missing/)
+    ? ticked(js.split('under seventy members')[1]?.split('are among the ones missing')[0] ?? '')
+    : [];
+
+  if (!claimed.length) return fail('javascript-dom-and-events.md', 'the missing-member list is gone - this check is blind');
+
+  for (const name of claimed) {
+    // A member of the wrapper appears as a binding in DomApi.cs under its own name.
+    if (new RegExp(`"${name}"`).test(domApi)) {
+      fail('javascript-dom-and-events.md', `names \`${name}\` as missing, but DomApi.cs binds it`);
+    }
+  }
+
+  notes.push(`dom: ${claimed.length} members named as missing, checked against DomApi.cs`);
+}
+
 /** Every guide that offers support must offer the product's own queue, not the front door. */
 function checkSupportLinks(files) {
   for (const rel of files) {
@@ -222,6 +252,7 @@ if (OFFLINE) {
 
     checkUnsupportedList(source(SIDELOAD, tag, 'Css/StyleApplier.cs'));
     checkGlobals(source(SIDELOAD, tag, 'Script/ScriptHost.cs'));
+    checkMissingMembers(source(SIDELOAD, tag, 'Script/DomApi.cs'));
 
     const devtoolsPaths = JSON.parse(gh(['api', `repos/${SIDELOAD}/contents/Devtools?ref=${tag}`], `${SIDELOAD}-${tag}-devtools`))
       .filter((e) => e.name.endsWith('.cs')).map((e) => e.path);

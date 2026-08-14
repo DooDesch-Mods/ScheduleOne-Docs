@@ -115,8 +115,9 @@ and compares them with the engine.
 
 ### The fence
 
-A browser `Element` has about three hundred members. The engine's wrapper has 67, and the gap is all one bug:
-`el.append(child)` works perfectly in Chrome and does nothing at all in the game, with no error either side. So the shell hands your page proxied elements that name the first use of anything the engine lacks, and
+A browser `Element` has about three hundred members. The engine's wrapper has under seventy, and the gap is all
+one bug: `el.append(child)` works perfectly in Chrome and does nothing at all in the game, with no error either
+side. So the shell hands your page proxied elements that name the first use of anything the engine lacks, and
 shadows the globals it never installs - `navigator`, `location`, `getComputedStyle`, `matchMedia`,
 `XMLHttpRequest`, `MutationObserver`. It names rather than throws; findings go to the console and to a panel
 under the stage.
