@@ -268,10 +268,17 @@ if (OFFLINE) {
       and keep gating everywhere.
     */
     const names = ['SHIPPED-APPS', 'SHOWCASE', 'TAILWIND-V3', 'TAILWIND-V4'];
+    const local = join(ROOT, '..', 'Workspace/docs/Sideload/gaps/measured');
+
     try {
-      const reports = Object.fromEntries(
-        names.map((n) => [n, source(WORKSPACE, 'main', `docs/Sideload/gaps/measured/${n}.md`)]),
-      );
+      // A checkout beside this one wins over the pushed copy. Whoever re-measures has the new numbers on disk
+      // and the old ones on main, and reading main would hand them a green check against the very figures they
+      // just replaced - the check would only start working after the push that made it too late to be useful.
+      const reports = existsSync(join(local, 'SHOWCASE.md'))
+        ? (notes.push('measured: read from the checkout next door'),
+           Object.fromEntries(names.map((n) => [n, readFileSync(join(local, `${n}.md`), 'utf8')])))
+        : Object.fromEntries(names.map((n) => [n, source(WORKSPACE, 'main', `docs/Sideload/gaps/measured/${n}.md`)]));
+
       checkMeasured(reports);
     } catch {
       notes.push('measured: SKIPPED - no access to the gap register, so the percentages went unchecked');

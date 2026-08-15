@@ -25,7 +25,7 @@ whatever the real panel measures, so one stylesheet fits every resolution.
 
 ## Supported
 
-**Box:** `display` (`flex`, `block`, `inline-block`, `grid`, `list-item`, `none`), `width`, `height`, `min-width`,
+**Box:** `display` (`flex`, `inline-flex`, `block`, `inline-block`, `grid`, `list-item`, `none`), `width`, `height`, `min-width`,
 `min-height`, `max-width`, `max-height`, `padding`, `margin`, `border`, `border-width`, `border-color`,
 `border-radius` and every per-side and per-corner longhand, `position: absolute`/`relative`/`static`, `top`,
 `right`, `bottom`, `left`, `inset`, `overflow`, `overflow-x`, `overflow-y`, `opacity`, `z-index`.
