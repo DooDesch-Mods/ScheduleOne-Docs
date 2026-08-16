@@ -252,9 +252,9 @@ The numbers, measured by running real stylesheets through this parser and cascad
 | Stylesheet | Declarations that never arrive |
 |---|---|
 | The 14 shipped Sideload apps | 0.1 percent |
-| Showcase: React 19 + Tailwind v4, through the Vite plugin | 2.3 percent |
-| A Tailwind v3 build, raw | 8.4 percent |
-| A Tailwind v4 build, raw | 13.2 percent |
+| Showcase: React 19 + Tailwind v4, through the Vite plugin | 1.9 percent |
+| A Tailwind v3 build, raw | 8.2 percent |
+| A Tailwind v4 build, raw | 12.7 percent |
 
 **Point a build tool at it.** This page said the opposite for most of 1.x, and the reason it changed is the
 same table read backwards: at 1.13.1 a Tailwind v4 build lost *everything*, because `@layer` wrapped the whole
@@ -263,8 +263,8 @@ and each of them was most of a Tailwind sheet on its own.
 
 `@doodesch/sideload-vite` closes most of the rest by rewriting what a web toolchain says into the spelling this
 engine reads - logical properties to physical, nesting flattened, Tailwind's five-slot shadow chain down to the
-layer that gets drawn. The two Tailwind v4 rows in the table are the same framework with and without it: 13.2
-percent lost raw, 2.3 percent through the plugin. See **[Dev Loop and Testing](/mods/sideload/guides/dev-loop-and-testing/)** for the build, and
+layer that gets drawn. The two Tailwind v4 rows in the table are the same framework with and without it: 12.7
+percent lost raw, 1.9 percent through the plugin. See **[Dev Loop and Testing](/mods/sideload/guides/dev-loop-and-testing/)** for the build, and
 **[Your First App](/mods/sideload/guides/your-first-app/)** for the one command that sets it up.
 
 Hand-written CSS against the list above is still the smallest thing that works, and the shipped apps are written
