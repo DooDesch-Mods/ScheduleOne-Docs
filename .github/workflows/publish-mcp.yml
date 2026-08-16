@@ -2,8 +2,27 @@ name: Publish the MCP package
 
 # Publishes mcp/ to npm as doodesch-docs-mcp when a tag like mcp-v1.0.0 is pushed.
 #
-# Needs one secret, NPM_TOKEN, an automation token from npmjs.com. Everything else is here: the tag has to
-# match the version in mcp/package.json, or the run fails rather than publishing a version nobody asked for.
+# NO TOKEN. Authentication is npm's trusted publishing: GitHub Actions mints a short-lived OIDC token for this
+# workflow in this repository, and npm accepts it because the package's settings on npmjs.com name exactly this
+# repository and this file. Same mechanism ScheduleOne-Sideload already publishes its two toolchain packages
+# with. It is not a preference: granular access tokens that bypass 2FA lost the sensitive management operations
+# on 2026-07-31 and lose publishing itself in January 2027.
+# https://github.blog/changelog/2026-07-31-restricting-npm-bypass-2fa-granular-access-tokens/
+#
+# ONE-TIME SETUP, and it cannot be done from here. A trusted publisher is configured on the PACKAGE's settings
+# page, so the package has to exist - and npm has no way to publish a first version over OIDC
+# (https://github.com/npm/cli/issues/8544). So the very first publish is done by hand, signed in with 2FA:
+#
+#   cd mcp && npm publish --access public
+#
+# then on npmjs.com -> doodesch-docs-mcp -> Settings -> Trusted Publisher -> GitHub Actions:
+#   GitHub organisation   DooDesch-Mods
+#   Repository            ScheduleOne-Docs
+#   Workflow filename     publish-mcp.yml
+#   Allowed actions       npm publish
+#
+# Every publish after that runs here. Pushing mcp-v1.0.0 after that manual first publish is a no-op with a log
+# line rather than a failure - see the skip step below - so the tag can be pushed for the record either way.
 
 on:
   push:
@@ -12,7 +31,7 @@ on:
 
 permissions:
   contents: read
-  # npm provenance signs the package against this workflow run.
+  # Mints the OIDC token npm authenticates with, and signs the provenance attestation against this run.
   id-token: write
 
 jobs:
@@ -21,10 +40,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 22.14 and npm 11.5.1 are the floor for OIDC publishing. Node 24 clears the first; the npm that ships
+      # with a runner image does not reliably clear the second, hence the upgrade below.
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Use an npm that can publish with OIDC
+        run: npm install -g npm@latest
 
       - name: The tag and the manifest agree
         if: startsWith(github.ref, 'refs/tags/')
@@ -35,14 +59,35 @@ jobs:
           echo "tag $tag, manifest $manifest"
           [ "$tag" = "$manifest" ] || { echo "::error::tag mcp-v$tag does not match mcp/package.json $manifest"; exit 1; }
 
-      - run: npm ci --prefix mcp
+      # The first version is published by hand (see the header), so the tag that records it would otherwise
+      # fail on EPUBLISHCONFLICT. A tag is a request to publish whatever is new; pushing one twice must not break.
+      - name: Skip a version that is already on npm
+        id: check
+        working-directory: mcp
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "published=yes" >> "$GITHUB_OUTPUT"
+            echo "$name@$version is already on npm - nothing to do."
+          else
+            echo "published=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install
+        if: steps.check.outputs.published == 'no'
+        run: npm ci --prefix mcp
 
       # The package fetches its corpus from the published site, so this proves the shipped code can answer
       # without anything else from this repository present.
       - name: It answers from the published corpus alone
+        if: steps.check.outputs.published == 'no'
+        working-directory: mcp
         run: |
           set -euo pipefail
-          cd mcp
           node --input-type=module -e "
             const { loadCorpus, getApiSurface } = await import('./lib.mjs');
             const corpus = await loadCorpus();
@@ -51,7 +96,11 @@ jobs:
             console.log('ok:', corpus.pages.length, 'pages,', corpus.surfaces.size, 'surfaces');
           "
 
-      - run: npm publish --provenance --access public
+      - name: Publish
+        if: steps.check.outputs.published == 'no'
         working-directory: mcp
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+
+      - name: Say what went out
+        if: steps.check.outputs.published == 'no'
+        run: echo "published ${{ steps.check.outputs.name }}@${{ steps.check.outputs.version }}"
