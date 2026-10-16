@@ -60,6 +60,8 @@ Snitch times `OnUpdate`, `OnFixedUpdate`, `OnLateUpdate` and `OnGUI` of every lo
 2. Run `snitch panels`. Your panel and its control counts appear.
 3. Open the panel from the `windows` list of the Overview window, or in the [web dashboard](/mods/snitch/guides/web-dashboard/).
 
+![The My Mod card under Mod panels in the web dashboard, with the mode text, the queue counter, the Jobs state, the batch size slider, the Verbose toggle and the Flush queue button](/img/guides/snitch/mod-panels.webp)
+
 ## Rules
 
 - Call the API from the Unity main thread. Snitch also runs your counter, state, action, toggle and slider delegates on the main thread, so they may use game objects.

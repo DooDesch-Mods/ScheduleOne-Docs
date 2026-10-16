@@ -46,6 +46,8 @@ Calls are no-ops while Hash is absent. Calls made before Hash loads are replayed
 ## Check it works
 Open the console with Hash installed and type the first letters of your word. Hash suggests the word and shows the example as the argument shape. The word is also in the game's own command list.
 
+![The Hash terminal on the phone with mymod typed at the prompt, its argument shape and its description from DocsShots above it](/img/guides/hash/suggestion.webp)
+
 Without Hash, nothing changes for the player. No error appears.
 
 ## Next

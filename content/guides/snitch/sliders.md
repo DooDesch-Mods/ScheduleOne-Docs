@@ -53,6 +53,8 @@ Snitch clamps the value to `[min, max]` and snaps it to `step` before it calls `
 3. Run `snitch slider Yoink:size 0.85`. The game applies the clamped, snapped value.
 4. Drag the slider in the overlay or the dashboard. Both use the same path.
 
+![The Yoink (Winch) card in the web dashboard with the size slider at 1.00 x and the pull force slider at 20000.00 N](/img/guides/snitch/yoink-sliders.webp)
+
 ## Label collisions
 
 A slider id is `<panelId>:<slug of the label>`. The slug keeps letters and digits, lowercases them and turns every other run of characters into one hyphen.

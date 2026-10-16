@@ -25,6 +25,8 @@ If the local data server is off, `snitch dashboard` opens nothing. Set `ServerEn
 
 The page shows a moving frame-time chart. If it says "Searching...", see [Troubleshooting](/mods/snitch/guides/troubleshooting/).
 
+![The Snitch web dashboard, connected on port 6140, with 94 fps and the frame-time chart](/img/guides/snitch/dashboard.webp)
+
 ## What the page shows
 
 - **Frame chart:** mean frame time in ms, newest sample on the right. Lower is better. Hover a point for its value.

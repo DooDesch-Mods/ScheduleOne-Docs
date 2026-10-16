@@ -19,6 +19,8 @@ Install Hotline and open the overlay with F6.
 
 Press **F6**. The overlay opens.
 
+![The Hotline overlay with one button per mod panel: My Mod, Yoink (Winch), Snitch (Profiler), Sideload and Timeline (logs)](/img/guides/hotline/overlay.webp)
+
 ## Settings
 
 Settings are in `UserData/MelonPreferences.cfg` under `Hotline_01_Main`.

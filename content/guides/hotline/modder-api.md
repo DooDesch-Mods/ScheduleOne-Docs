@@ -34,6 +34,8 @@ Give your mod its own panel in the Hotline overlay. Players open the overlay wit
 2. Open your panel from the Overview window, or run `hotline panel MyMod on`.
 3. Run `hotline panels`. `MyMod` is in the list.
 
+![The My Mod panel next to the Hotline overlay, with the queue readout, the Reload button, the Verbose toggle and the batch size slider](/img/guides/hotline/mymod-panel.webp)
+
 ## Builder methods
 
 | Method | Result |
