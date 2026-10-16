@@ -23,13 +23,45 @@ pull request that does will be overwritten by the next build.
 Guides are the exception on purpose: a reference says what exists, a guide says how to use it, and only the
 first of those can be derived from code.
 
+The overview drops what the info box or `/install/` already says: badge rows, the support line, the docs link
+and "License". "Installation", "Requirements", "Credits" and "Compatibility" fold into a collapsed block.
+
+## Writing a guide
+
+Every guide starts with the task, not with background:
+
+```markdown
+---
+title: Add a panel                 # verb + object
+description: Give your mod a panel in the Hotline overlay.   # one sentence, the result
+sidebar:
+  order: 1                         # 1 = the mod's "Start here" guide, exactly one per mod
+---
+
+What you do and what you get, in one line.
+
+**You need:** prerequisites.
+
+## Steps
+## Check it works
+## Next
+```
+
+Lookup pages (CSS support, config keys) start with "Look up ..." and are tables. Troubleshooting pages have one
+heading per symptom. Short sentences, one fact each, no history: a version gate reads "Needs Sideload 1.31+".
+
+The ingest fails on a description shorter than 20 characters or starting with a list marker, and on two guides
+of one mod with `order: 1`. The order-1 guide is linked as "Start here" in the sidebar and in the info box.
+
+A mod with an API reference or a "Start here" guide is listed under Libraries, the others under Mods.
+
 ## How a mod gets in
 
 Give its GitHub repo the `game-schedule-i` topic. The next build finds it, reads it at its latest release tag
 and writes its pages. There is no list of mods in this repository to update.
 
 A mod gets an API reference section if it carries an API source file in one of the conventional places
-(`<Mod>.Api/*.cs`, `Api/API.cs`, `API.cs`). Example repos are excluded by their `example` topic, because the
+(`<Mod>.Api/*.cs`, `Api/*.cs`, `API.cs`). Example repos are excluded by their `example` topic, because the
 API copy they vendor belongs to the mod they demonstrate.
 
 ## Build it locally

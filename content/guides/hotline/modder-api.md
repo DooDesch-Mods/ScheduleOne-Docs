@@ -1,67 +1,61 @@
 ---
-title: "Modder API"
-description: "Hotline gives any mod a ready-made panel in the unified overlay, and it is a **zero-overhead no-op when Hotline"
+title: Add a panel
+description: Give your mod a panel in the Hotline overlay with text, buttons, toggles and sliders.
 sidebar:
-  order: 2
+  order: 1
 ---
-Hotline gives any mod a ready-made panel in the unified overlay, and it is a **zero-overhead no-op when Hotline
-is not installed** - so you can ship the integration unconditionally with no hard dependency. Full working
-example: [ScheduleOne-HotlineExample](https://github.com/DooDesch-Mods/ScheduleOne-HotlineExample).
 
-## Add the shim
+Give your mod its own panel in the Hotline overlay. Players open the overlay with F6 and see your panel as a window. You write no `OnGUI` and no uGUI.
 
-- **Copy-in source (recommended):** drop `Hotline.cs` (from the example repo) into your mod project. It compiles
-  into your DLL - nothing extra to ship.
-- **Reference the DLL:** reference `Hotline.Api.dll`.
+**You need:** Hotline in your test game and a MelonLoader mod project. Players do not need Hotline: every call is a no-op without it.
 
-Both bind to the running Hotline host by reflection, so they share no type with it and work regardless of load
-order (registrations queue until the host is up).
+## Steps
 
-## Register a panel
+1. Copy `Hotline.cs` from [ScheduleOne-HotlineExample](https://github.com/DooDesch-Mods/ScheduleOne-HotlineExample) into your project. It compiles into your DLL. You can reference `Hotline.Api.dll` instead.
+2. Register a panel. Use your mod name as the panel id.
 
-```csharp
-using Hotline.Api;   // Hud, Panel, HotlineKey, LogLevel
+   ```csharp
+   using Hotline.Api;   // Hud, Panel, HotlineKey, LogLevel
 
-Hud.RegisterPanel("MyMod", "My Mod")
-   .Text(() => "queue = " + _queue.Count)                  // a free, multi-line readout
-   .Action("Reload", Reload)                               // a button (replaces a debug hotkey)
-   .Toggle("Verbose", () => _verbose, v => _verbose = v)   // an on/off control
-   .Slider("batch size", 1, 64, () => _batch, v => _batch = (int)v, 1)   // a draggable value
-   .Hotkey("Reload", HotlineKey.F8, Reload)                // an optional central hotkey (Hotline polls it)
-   .Log();                                                 // show this panel's log channel
-```
+   Hud.RegisterPanel("MyMod", "My Mod")
+      .Text(() => "queue = " + _queue.Count)
+      .Action("Reload", Reload)
+      .Toggle("Verbose", () => _verbose, v => _verbose = v)
+      .Slider("batch size", 1, 64, () => _batch, v => _batch = (int)v, 1)
+      .Hotkey("Reload", HotlineKey.F8, Reload)
+      .Log();
+   ```
 
-That is the whole UI - no `OnGUI`, no uGUI, no per-mod hotkey. The player opens the overlay with the master key
-(F6); your panel is a window there, toggled from the Overview (or `hotline panel MyMod on`).
+3. Optional: put the registration in a static class named `HotlineProbe` with a static `Register()` method. Hotline finds and calls it, so you wire nothing into `OnInitializeMelon`.
 
-## The builder
+## Check it works
 
-- `.Text(Func<string>)` - a multi-line readout, polled by Hotline a few times a second.
-- `.Image(Func<int[]>)` - raw ARGB pixels (`{ width, height, argb0, argb1, ... }`) drawn in the panel, e.g. a QR
-  code. Return null or an empty array for "nothing to show".
-- `.Action(string label, Action run)` - a button; runs on the Unity main thread when clicked.
-- `.Toggle(string label, Func<bool> get, Action<bool> set)` - an on/off control.
-- `.Slider(string label, double min, double max, Func<double> get, Action<double> set, double step = 0, string unit = null)` -
-  a draggable value. Hotline clamps to the range and snaps to the step before your setter sees it. See
-  **[Sliders](/mods/hotline/guides/sliders/)**, including the id collision that eats controls.
-- `.Hotkey(string label, HotlineKey key, Action run)` - bind a key centrally; Hotline owns the polling and flags
-  conflicts. Pass `HotlineKey.None` to skip the key.
-- `.Log()` - show this panel's log channel; send lines with `.Write("...")` or `Hud.Log("MyMod", "...")`.
+1. Start the game and press F6. The overlay opens.
+2. Open your panel from the Overview window, or run `hotline panel MyMod on`.
+3. Run `hotline panels`. `MyMod` is in the list.
 
-The lower-level static calls
-(`Hud.RegisterPanel/RegisterAction/RegisterToggle/RegisterSlider/RegisterText/RegisterImage/RegisterHotkey/Log`)
-exist too if you prefer them to the builder.
+## Builder methods
 
-## Already using a raw function key?
+| Method | Result |
+|---|---|
+| `.Text(Func<string>)` | Multi-line readout, polled a few times a second. |
+| `.Image(Func<int[]>)` | Raw ARGB pixels, for example a QR code. Use `{ width, height, argb0, argb1, ... }`. Return null or an empty array to show nothing. |
+| `.Action(string label, Action run)` | Button. Runs on the main thread. |
+| `.Toggle(string label, Func<bool> get, Action<bool> set)` | On/off control. |
+| `.Slider(string label, double min, double max, Func<double> get, Action<double> set, double step = 0, string unit = null)` | Draggable value. See [Add a slider](/mods/hotline/guides/sliders/). |
+| `.Hotkey(string label, HotlineKey key, Action run)` | Central hotkey. Hotline polls it and flags conflicts. `HotlineKey.None` skips the key. |
+| `.Log()` | Show the panel's log channel. Write with `.Write("...")` or `Hud.Log("MyMod", "...")`. |
 
-If your mod polls a raw `Input.GetKeyDown(KeyCode.Fx)`, Hotline auto-detects it and adds a button for it to your
-panel anyway (see [Auto-Intercepted Hotkeys](/mods/hotline/guides/how-it-works/)). Registering a panel as above is the clean way and
-gives you text, toggles, sliders and a log on top.
+Static calls exist too: `Hud.RegisterPanel`, `RegisterAction`, `RegisterToggle`, `RegisterSlider`, `RegisterText`, `RegisterImage`, `RegisterHotkey`, `Log`.
 
 ## Rules
 
-- Call from the **Unity main thread**. Action/toggle/slider/text delegates are invoked by Hotline on the main
-  thread, so they may safely touch game objects.
-- Use your mod name as the panel id so an auto-detected hotkey lands in the same panel.
-- Every call is a no-op when Hotline is absent; there is no hard dependency.
+- Call the API from the Unity main thread. Hotline runs your delegates on the main thread, so they may use game objects.
+- Registrations made before Hotline loads are queued. Load order does not matter.
+- Your mod may poll a raw `Input.GetKeyDown(KeyCode.Fx)`. Hotline then adds a button for it to the panel with the same id as your mod name. See [How hotkey interception works](/mods/hotline/guides/how-it-works/).
 
+## Next
+
+- [Add a slider](/mods/hotline/guides/sliders/)
+- [Console commands](/mods/hotline/guides/console-commands/)
+- [API reference](/mods/hotline/api/)

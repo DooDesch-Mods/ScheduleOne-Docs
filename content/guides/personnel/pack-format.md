@@ -1,19 +1,19 @@
 ---
-title: "Pack Format"
-description: "An NPC pack is a folder under"
+title: Pack format reference
+description: Look up every manifest.json field of a Personnel NPC pack, from appearance to schedule and economy roles.
 sidebar:
-  order: 1
+  order: 2
 ---
-An NPC pack is a folder under:
+
+Look up the `manifest.json` fields of an NPC pack. A pack is this folder:
 
 ```
-…/Schedule I/UserData/Personnel/Packs/<PackName>/
+Schedule I/UserData/Personnel/Packs/<PackName>/
 ├── manifest.json
 └── *.png              (optional custom layers, referenced by the manifest)
 ```
 
-Since Personnel 2.0 a pack can describe the whole NPC - looks, spawn point, daily schedule, economy
-role - and Personnel spawns it as a real world NPC on its own (`autoRegister`). No mod code needed.
+Needs Personnel 2.0+ for `autoRegister`, `spawn`, `schedule` and economy roles.
 
 ## manifest.json
 
@@ -80,30 +80,24 @@ role - and Personnel spawns it as a real world NPC on its own (`autoRegister`). 
 }
 ```
 
-Every field is **optional** - omitted keys keep sensible defaults, so a minimal NPC is still just a
-`name`. Colours are `#RRGGBB` or `#RRGGBBAA` hex strings. Unknown values are warned about in the log
-and skipped; a broken field never takes the whole NPC down.
+Every field is optional. A minimal NPC only needs a `name`. Colours are `#RRGGBB` or `#RRGGBBAA` hex strings. Personnel logs a warning for an unknown value and skips it. A broken field never removes the whole NPC.
 
 ## Ids and saves
 
-- An authored `id` is respected as-is (normalized to lowercase `a-z0-9_`). Without one, the id is
-  derived as `normalize(packId or folder name)_normalize(npcName)`.
-- **Never change an id once the pack shipped** - it is the save identity. If you must rename, set
-  `saveId` to the OLD id so existing saves keep matching.
-- `packId` (top level) pins the derivation prefix so renaming the pack folder does not change ids.
-- Two NPCs in the same pack must have different ids. The startup log prints each pack's ids.
+- Personnel uses an authored `id` as given, normalized to lowercase `a-z0-9_`.
+- Without `id`, Personnel derives `normalize(packId or folder name)_normalize(npc name)`.
+- `packId` (top level) fixes the derivation prefix. Renaming the pack folder then keeps the ids.
+- Ids must be unique inside a pack. The startup log prints the ids of each pack.
+- The id is the save identity. Never change it after you ship the pack.
+- To rename, set `saveId` to the OLD id. Existing saves then keep matching.
 
-## Auto-registration (world NPCs without code)
+## Auto-registration
 
-Set `"autoRegister": true` at the top level (or `"auto": true` inside a single NPC's `spawn`) and
-Personnel registers those NPCs as real S1API world NPCs - networked, saved, walking their schedules.
-Notes:
+Set `"autoRegister": true` at top level, or `"auto": true` inside one NPC's `spawn`. Personnel then registers the NPC as a real S1API world NPC. It is networked, saved and follows its schedule.
 
-- Everyone in a co-op session needs the same packs installed (same rule as mods).
-- Pack changes need a game restart.
-- If a consumer mod already ships a compiled class for the same NPC id, the compiled one wins and
-  the log says so - remove the old DLL once a pack is fully migrated.
-- The `EnableAutoRegister` setting is a global kill switch.
+- Everyone in a co-op session needs the same packs.
+- If a mod ships a compiled class for the same NPC id, the compiled one wins. The log says so.
+- The setting `EnableAutoRegister` turns auto-registration off globally.
 
 ## spawn
 
@@ -111,121 +105,88 @@ Notes:
 |-----|---------|
 | `x`, `y`, `z` | Spawn position. |
 | `rotationY` | Spawn yaw in degrees. |
-| `region` | Map region: `Northtown`, `Westville`, `Downtown`, `Docks`, `Suburbia`, `Uptown`. |
-| `physical` | `true` = real world body (moves, collides, runs schedules). `false` = phone contact only - costs next to nothing. Default: physical exactly when the NPC has a `schedule`. |
-| `auto` | Per-NPC override of the pack's `autoRegister`. |
+| `region` | `Northtown`, `Westville`, `Downtown`, `Docks`, `Suburbia` or `Uptown`. |
+| `physical` | `true`: real world body that moves, collides and runs its schedule. `false`: phone contact only, almost no cost. Default: `true` exactly when the NPC has a `schedule`. |
+| `auto` | Overrides the pack's `autoRegister` for this NPC. |
 
-Keep most roster NPCs non-physical - that is what keeps big packs fast, also on Steam Deck. For many
-physical NPCs, [Siesta](https://github.com/DooDesch-Mods/ScheduleOne-Siesta) throttles the AI cost.
-
-Stand where the NPC should spawn and run `personnel spawn` in the dev console to get this whole block
-with the numbers filled in - see [Finding coordinates](#finding-coordinates).
+Keep most NPCs of a large pack non-physical. For many physical NPCs, [Siesta](https://github.com/DooDesch-Mods/ScheduleOne-Siesta) lowers the AI cost.
 
 ## schedule
 
-An array of actions; `type` decides the other fields. Times are `"HH:MM"` strings, durations are
-in-game minutes, positions are `[x, y, z]`.
+An array of actions. `type` decides the other fields. Times are `"HH:MM"` strings, durations are in-game minutes, positions are `[x, y, z]`.
 
 | type | Fields |
 |------|--------|
 | `walkTo` | `time`, `position`, `faceDestination`, `within`, `warpIfSkipped` |
 | `stayInBuilding` | `time`, `duration`, `building` (name), `doorIndex` |
 | `sit` | `time`, `duration`, `seatSet` (name) or `seatSetPath`, `includeInactive`, `warpIfSkipped` |
-| `useVendingMachine` | `time`, `machineGuid` (optional - nearest otherwise) |
+| `useVendingMachine` | `time`, `machineGuid` (optional, nearest otherwise) |
 | `useAtm` | `time`, `atmGuid` (optional) |
-| `useSlotMachine` | `time`, `position`, `bet`, `mode` (`single`, `spinCount`, `untilTime`, `untilBroke`, `untilTimeOrBroke`), `spins`, `endTime`, `timeBetweenSpins` - experimental in multiplayer |
-| `locationDialogue` | `time`, `position`, `greetingOverride`, `choice`, plus the walkTo fields |
+| `useSlotMachine` | `time`, `position`, `bet`, `mode` (`single`, `spinCount`, `untilTime`, `untilBroke`, `untilTimeOrBroke`), `spins`, `endTime`, `timeBetweenSpins`. Experimental in multiplayer. |
+| `locationDialogue` | `time`, `position`, `greetingOverride`, `choice`, plus the `walkTo` fields |
 | `locationAction` | `time`, `position`, `duration`, `action` (`smokeBreak`, `graffiti`, `drinking`, `holdItem`), `equippablePath`, `graffitiRegion` |
 | `driveToCarPark` | `time`, `parkingLot` (name), `vehicle` (name) or `createVehicle: { "code": "shitbox", "position": [x,y,z], "rotationY": 0 }` |
-| `dealSignal` | no fields - lets a dealer break its schedule for deals |
+| `dealSignal` | No fields. Lets a dealer break its schedule for deals. |
 
-Unknown building/seat names log a warning and the NPC skips that step - schedules keep working when
-a target is missing.
+- An unknown building or seat name logs a warning. The NPC skips that step.
+- `warpIfSkipped: true` places the NPC at the destination when no player was nearby and the step was skipped. Without it the NPC misses the stop and the log says nothing.
+- NPCs move only on the navmesh. An unreachable destination leaves the NPC where it was.
+- `y` need not be exact. The game samples the navmesh within about 5 units of the destination.
 
-## Finding coordinates
+## Console commands for coordinates
 
-The game has no coordinate display, so Personnel ships console commands that hand you the spot you
-are standing on. Turn the console on in Settings ("Console enabled"), press the backtick key, and:
+Needs Personnel 2.1+. Enable "Console enabled" in Settings and press the backtick key. Each result goes to your clipboard and to `MelonLoader/Latest.log`.
 
-| Command | What you get |
-|---------|--------------|
-| `personnel pos` | `[x, y, z]` for any field that takes a `position` |
-| `personnel pos 07:30` | a finished `walkTo` action for that time |
-| `personnel spawn` | a `spawn` block with `x`/`y`/`z`/`rotationY`/`region` filled in |
-| `personnel route 07:30` | appends a `walkTo` step to `UserData/Personnel/route.json` |
-| `personnel route show` | prints the collected steps, ready to paste into `"schedule": [ ... ]` |
-| `personnel route clear` | starts a new route |
-| `personnel npcs [filter]` | loaded definitions, and where the physical ones are right now |
+| Command | Result |
+|---------|--------|
+| `personnel pos` | `[x, y, z]` for any `position` field |
+| `personnel pos 07:30` | A finished `walkTo` action for that time |
+| `personnel spawn` | A `spawn` block with `x`, `y`, `z`, `rotationY` and `region` filled in |
+| `personnel route 07:30` | Appends a `walkTo` step to `UserData/Personnel/route.json` |
+| `personnel route show` | Prints the collected steps, ready to paste into `"schedule": [ ... ]` |
+| `personnel route clear` | Starts a new route |
+| `personnel npcs [filter]` | Loaded definitions, and where the physical ones are now |
 
-Every result is copied to your clipboard and written to the MelonLoader log. The game's console has
-no output pane, so the log (`MelonLoader/Latest.log`) is where the full text lives; in-game you get a
-notification confirming the command ran.
+Vanilla `teleport <property|npc id>` moves you fast, for example `teleport rv` or `teleport jessi_waters`.
 
-Mapping a route is three steps: walk to the first stop, `personnel route 07:00`, repeat for each
-stop, then `personnel route show` and paste the block into the NPC's `schedule`.
+Without Personnel 2.1: run `save` in the console, then read `Position` from `%USERPROFILE%\AppData\LocalLow\TVGS\Schedule I\Saves\<SteamID>\SaveGame_1\Players\Player_0\Player.json`.
 
-Two things to watch:
+## Roles: customer and dealer
 
-- NPCs only move on the navmesh. Pick a spot you would walk over yourself - next to a vehicle rather
-  than inside it. Unreachable destinations leave the NPC standing where it was.
-- `y` does not have to be exact. The game samples the navmesh within about 5 units of the
-  destination, so `x` and `z` do the work.
+A `customer` or `dealer` block gives the NPC that economy role. If both exist, `dealer` wins. Personnel applies only the fields you set. The rest keep the game defaults.
 
-`warpIfSkipped: true` (added by the commands above) places the NPC at the destination when the step
-was skipped because no player was nearby at that time. Without it the NPC misses the stop and nothing
-in the log says so.
+- `customer`: `spending`, `ordersPerWeek`, `preferredOrderDay` (`Monday` to `Sunday`), `orderTime`, `standards` (`VeryLow`, `Low`, `Moderate`, `High`, `VeryHigh`), `allowDirectApproach`, `guaranteeFirstSample`, `mutualRelationRequirement`, `callPoliceChance`, `dependence`, `affinities`, `preferredProperties`.
+- `affinities` maps a drug type to a value from -1 to 1. Types: `marijuana`, `methamphetamine`, `cocaine`, `mdma`, `shrooms`, `heroin`.
+- `preferredProperties` takes property ids such as `energizing`.
+- `dealer`: `type` (`player` or `cartel`), `cut`, `signingFee`, `home` (building name), `completedDealsVariable`, `allowInsufficientQuality`, `allowExcessQuality`.
 
-Vanilla `teleport <property|npc id>` gets you to a spot fast - `teleport rv`, `teleport barn`,
-`teleport jessi_waters` - and then the commands above read that position off.
+## contact and relationships
 
-**Without Personnel 2.1.0**, the save file has the same numbers: stand on the spot, run `save` in
-the console, and read `Position` from
-`%USERPROFILE%\AppData\LocalLow\TVGS\Schedule I\Saves\<SteamID>\SaveGame_1\Players\Player_0\Player.json`.
-
-## Roles: customer / dealer
-
-Presence of a `customer` or `dealer` block gives the NPC that economy role (a `dealer` block wins if
-both exist; the old `behavior.conversation` shorthand still works). Only the fields you set are
-applied - everything else keeps the game's defaults.
-
-- `customer`: `spending`, `ordersPerWeek`, `preferredOrderDay` (`Monday`..`Sunday`), `orderTime`,
-  `standards` (`VeryLow`, `Low`, `Moderate`, `High`, `VeryHigh`), `allowDirectApproach`,
-  `guaranteeFirstSample`, `mutualRelationRequirement`, `callPoliceChance`, `dependence`,
-  `affinities` (drug type -> -1..1: `marijuana`, `methamphetamine`, `cocaine`, `mdma`, `shrooms`,
-  `heroin`), `preferredProperties` (property ids like `energizing`).
-- `dealer`: `type` (`player` or `cartel`), `cut`, `signingFee`, `home` (building name),
-  `completedDealsVariable`, `allowInsufficientQuality`, `allowExcessQuality`.
-
-## contact / relationships
-
-- `contact.mapMarker: false` removes the phone-map marker. `contact.visible: false` (experimental)
-  skips the contact unlock, so the NPC shows as "???".
-- `relationships`: `delta` (0-5), `unlocked`, `unlockType` (`Recommendation` or `DirectApproach`),
-  `connections` (NPC ids - pack-prefixed for pack NPCs, plain vanilla ids like `jessi_waters` work
-  too).
+- `contact.mapMarker: false` removes the phone-map marker.
+- `contact.visible: false` skips the contact unlock, so the NPC shows as "???". Experimental.
+- `relationships.delta` is 0 to 5.
+- `relationships.unlocked` is a boolean.
+- `relationships.unlockType` is `Recommendation` or `DirectApproach`.
+- `relationships.connections` lists NPC ids. Use pack-prefixed ids for pack NPCs and plain ids such as `jessi_waters` for vanilla NPCs.
 
 ## Layers
 
-Each entry in `faceLayers` / `bodyLayers` / `accessories` uses **one** source:
+Each entry in `faceLayers`, `bodyLayers` and `accessories` uses one source:
 
 | Key | Meaning |
 |-----|---------|
-| `path` | An existing in-game layer / accessory Resources path (what Personify's pickers store). |
-| `file` | A pack-relative PNG registered as a custom layer at load time - see [Custom PNG Layers](/mods/personnel/guides/custom-png-layers/). |
-| `tint` (alias `color`) | Hex tint applied to the layer. Default white. |
+| `path` | A Resources path of an in-game layer or accessory. Personify stores these. |
+| `file` | A PNG in the pack folder. Personnel registers it as a custom layer at load. See [Custom PNG layers](/mods/personnel/guides/custom-png-layers/). |
+| `tint` (alias `color`) | Hex tint. Default white. |
 
-Face layers render on the face mesh, body layers on the body mesh - a custom `file` in `faceLayers` is
-registered as a face layer, in `bodyLayers` as a body layer. Accessories are attached meshes and only take
-`path` (custom accessory meshes are not supported).
+A `file` in `faceLayers` registers on the face mesh. A `file` in `bodyLayers` registers on the body mesh. Accessories take only `path`. Custom accessory meshes are not supported.
 
 ## extensions
 
-Free-form blocks keyed by consumer name (e.g. `"backrooms": { ... }`). Personnel passes them through
-untouched; each consumer parses its own block and ignores the rest.
+Free-form blocks keyed by consumer name, for example `"backrooms": { ... }`. Personnel passes them through untouched. Each consumer reads its own block.
 
-## Publishing a pack
+## Publish a pack
 
-A pack is just files, so ship it any way you like. [Personify](https://github.com/DooDesch-Mods/ScheduleOne-Personify)
-exports the pack already wrapped Thunderstore-style (manifest.json/README/LICENSE + your pack under
-`Personnel/Packs/<name>/`); add a 256x256 `icon.png` and upload. List `DooDesch-Personnel` as a dependency.
-
+1. Export the pack from [Personify](https://github.com/DooDesch-Mods/ScheduleOne-Personify). It wraps the pack for Thunderstore with `manifest.json`, README and LICENSE, and your pack under `Personnel/Packs/<name>/`.
+2. Add a 256x256 `icon.png`.
+3. List `DooDesch-Personnel` as a dependency and upload.

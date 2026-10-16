@@ -1,54 +1,45 @@
 ---
-title: "Troubleshooting"
-description: "Always check the MelonLoader log first: `…/Schedule I/MelonLoader/Logs/` (newest file)."
+title: Troubleshoot Inkorporated
+description: Find the cause and fix for a tattoo that is missing, misplaced, black or invisible to other players.
 sidebar:
-  order: 6
+  order: 5
 ---
-Always check the MelonLoader log first: `…/Schedule I/MelonLoader/Logs/` (newest file). Inkorporated logs
-every pack it loads, every tattoo it registers, and any problem with a warning.
 
-## My tattoo does not appear in the shop at all
+Find your symptom below. Check `MelonLoader/Latest.log` first.
 
-- **Pack not loaded?** The log should show `Pack '<YourPack>' (...): N tattoo(s)`. If not, the folder is not
-  under `UserData/Inkorporated/Packs/<Pack>/`, or `manifest.json` is missing/invalid JSON.
-- **Entry skipped?** Look for a warning naming your tattoo: unknown `placement`, missing `id`, or the PNG
-  file was not found (check the `file` name and that it sits in the pack folder).
-- **Wrong category tab.** A `chest` tattoo only shows under Chest, `face` under Face, etc.
-- **(API)** You registered too late. Register in `OnInitializeMelon`, before the shop UI is built. See
-  [API Reference](/mods/inkorporated/api/).
+## My tattoo does not appear in the shop
 
-## The tattoo shows, but it is in the wrong place / a black blob on a limb
+- Pack not loaded: the log must show `Pack '<YourPack>' (...): N tattoo(s)`. If not, the folder is not at `UserData/Inkorporated/Packs/<Pack>/`, or `manifest.json` is missing or invalid.
+- Entry skipped: look for a warning with your tattoo name. Causes are an unknown `placement`, a missing `id` or a missing PNG. Check the `file` name.
+- Wrong tab: a `chest` tattoo shows only under Chest, a `face` tattoo only under Face.
+- API: register in `OnInitializeMelon`, before the shop UI is built.
 
-This is almost always **UV misalignment**: the PNG's opaque pixels are not at the body part's UV. A big
-centered design maps across the wrong areas. Re-read [Authoring Tattoos](/mods/inkorporated/guides/authoring-tattoos/) and paint over a UV template.
+## The tattoo is in the wrong place or a blob on a limb
 
-## The button appears but selecting it does nothing visible
+The opaque pixels are not at the UV of the body part. Paint over a template. See [Author a tattoo PNG](/mods/inkorporated/guides/authoring-tattoos/).
 
-- The texture may be fully transparent, or its opaque area is tiny / off in an unused UV corner. Verify the
-  PNG actually has visible pixels and is aligned.
-- Confirm the placement matches the art (a face design under `face`, etc.).
+## I select the button and nothing shows
 
-## A custom tattoo I made is solid black over a whole limb
+The texture is fully transparent, or its opaque area is tiny or in an unused UV corner. Check that the PNG has visible pixels at the right UV. Check that the placement matches the art.
 
-Your PNG is opaque where it should be transparent (e.g. an opaque background). Tattoos need a transparent
-background with opaque pixels only on the design. Export as RGBA with real transparency.
+## The tattoo is solid black over a whole limb
+
+The PNG has an opaque background. Export RGBA with a transparent background and opaque pixels only on the design.
 
 ## Other players cannot see my tattoo
 
-Expected unless they also have Inkorporated **and the same pack/registration**. The path is synced, but a
-client without the content cannot render it. See [Multiplayer Saves and NPCs](/mods/inkorporated/guides/multiplayer-saves-and-npcs/).
+They need Inkorporated and the same pack. The game syncs the path, and a client without the content cannot render it. See [Multiplayer, saves and NPCs](/mods/inkorporated/guides/multiplayer-saves-and-npcs/).
 
-## (API) My mod fails to load / cannot find Inkorporated
+## My mod cannot find Inkorporated or fails to load
 
-- Add `[assembly: MelonAdditionalDependencies("Inkorporated")]` so it loads after the framework.
-- Make sure `Inkorporated.dll` (and S1API) are actually installed in `Mods/`.
-- Reference the DLLs from a real install (see [API Reference](/mods/inkorporated/api/) / the example `.csproj`).
+- Add `[assembly: MelonAdditionalDependencies("Inkorporated")]` so your mod loads after the framework.
+- Install `Inkorporated.dll` and S1API in `Mods/`.
+- Reference the DLLs from a real install. See the [API reference](/mods/inkorporated/api/) and the example `.csproj`.
 
-## Where are the UV templates?
+## The Templates folder is missing
 
-`UserData/Inkorporated/Templates/` is written only by a **DEBUG** build of Inkorporated. With the normal
-Release build it will not exist - use a DEBUG build to export them, or start from the example pack's aligned
-PNGs.
+Only a DEBUG build of Inkorporated writes `UserData/Inkorporated/Templates/`. Use a DEBUG build, or start from the aligned PNGs of the example pack.
 
-Still stuck? 🛟 [support.doodesch.de](https://support.doodesch.de/inkorporated).
+## Still stuck
 
+Get support at [support.doodesch.de](https://support.doodesch.de/inkorporated).

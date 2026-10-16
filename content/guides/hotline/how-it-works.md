@@ -1,45 +1,37 @@
 ---
-title: "Auto-Intercepted Hotkeys"
-description: "Beyond the [modder API](/mods/hotline/guides/modder-api/), Hotline covers mods that never adopt it."
+title: How hotkey interception works
+description: Look up how Hotline catches other mods' function keys and turns them into panel buttons.
 sidebar:
   order: 4
 ---
-Beyond the [modder API](/mods/hotline/guides/modder-api/), Hotline covers mods that never adopt it. It watches for mods that poll a
-raw function key (F1-F12) and turns each into a button in that mod's overlay panel - so you can trigger any
-mod's hotkey from one place, and two mods stop colliding on the same key.
 
-## How discovery works
+Hotline catches mods that poll a raw function key (F1-F12) and adds a button for each key to that mod's panel. You trigger any mod's hotkey from one place, and two mods no longer fight over a key. The mod does not need to use the [Hotline API](/mods/hotline/guides/modder-api/).
 
-Hotline wraps every other mod's per-frame methods (`OnUpdate` etc.) so it knows which mod is running, then a
-Harmony hook on `UnityEngine.Input.GetKeyDown` attributes each polled function key to that mod and adds a
-"Press Fx" button to its panel. This is scoped to mod code, so the game's own input is never touched.
+## How it works
 
-## Triggering a caught hotkey
+1. Hotline wraps the per-frame methods of every other mod (`OnUpdate` and others) to know which mod is running.
+2. A Harmony hook on `UnityEngine.Input.GetKeyDown` assigns each polled function key to that mod.
+3. Hotline adds a "Press Fx" button to the mod's panel.
 
-Click the "Press Fx" button (or run `hotline key press Fx <mod>`). Hotline injects a one-frame synthetic press
-that only the owning mod sees. Input is read client-side, so this never affects multiplayer.
+The hook applies to mod code only. The game's own input is not touched.
 
-## Optional full takeover
+## Press a caught key
 
-By default the raw key keeps working and the button is just an addition. Turn on **`SuppressRawFunctionKeys`**
-(or `hotline intercept suppress on`) for full takeover: a physical function-key press no longer reaches the mod
-at all - instead it opens the Hotline overlay focused on that mod's panel, where each of its keys is a button.
-Now two mods can never collide on a function key.
+Click the "Press Fx" button, or run `hotline key press Fx <mod>`. Hotline sends a one-frame synthetic press that only the owning mod sees. Input is read on the client, so multiplayer is not affected.
 
-## The master key
+## Full takeover
 
-The overlay key (default **F6**) is reserved for Hotline and is never intercepted. If a mod also uses F6, it
-still gets a button, and pressing F6 opens the overlay on that mod's panel - the mod's raw F6 is taken over so it
-cannot double-fire with the overlay toggle.
+By default the raw key keeps working. Set **`SuppressRawFunctionKeys`** to `true`, or run `hotline intercept suppress on`, for full takeover. A physical function-key press then no longer reaches the mod. It opens the overlay on that mod's panel, where each key is a button.
+
+## Master key
+
+The overlay key (default **F6**) belongs to Hotline and is never caught. If a mod also uses F6, it still gets a button. Pressing F6 opens the overlay on that mod's panel, and the mod's raw F6 is blocked so it cannot fire twice.
 
 ## One window per mod
 
-A mod's registered panel, its forwarded data (e.g. from Snitch) and its auto-caught hotkeys all land in a single
-panel when they share the mod's name - so you get one window per mod, not several.
+A registered panel, forwarded data (for example from Snitch) and caught hotkeys land in one panel when they share the mod's name.
 
 ## Limits
 
-Hotline only catches mods that poll the legacy `UnityEngine.Input`. Mods on the new Input System are not
-intercepted (and are simply unaffected). Vanilla reads gameplay through its own input system and binds no
-function keys, so it is never touched.
-
+- Hotline catches only mods that use the legacy `UnityEngine.Input`. Mods on the new Input System are not caught and are not affected.
+- The vanilla game binds no function keys, so it is never touched.

@@ -1,24 +1,24 @@
 ---
-title: "Installation"
-description: "- **Schedule I** (IL2CPP, current Steam public build)"
+title: "Install TightBeam"
+description: "Install TightBeam so your flashlight becomes an adjustable beam."
 sidebar:
   order: 2
 ---
-## Requirements
+Install TightBeam and use your normal flashlight key.
 
-- **Schedule I** (IL2CPP, current Steam public build)
-- **MelonLoader 0.7.3+**
-- No other dependencies.
+**You need:** Schedule I (IL2CPP, current Steam public build) and MelonLoader 0.7.3+. See [Install](/install/) for MelonLoader.
 
-## Recommended: a Thunderstore mod manager
+## Steps
 
-Install with r2modman / Gale from the Schedule I community; MelonLoader is pulled in automatically.
+1. With r2modman or Gale, install TightBeam from the Schedule I community. MelonLoader comes with it.
+2. Or install it by hand: put `TightBeam.dll` in the `Mods/` folder of Schedule I.
+3. Start the game and load a save.
+4. Switch your flashlight on.
 
-## Manual
+## Check it works
 
-1. Install **MelonLoader 0.7.3** for Schedule I.
-2. Drop **`TightBeam.dll`** into your Schedule I `Mods/` folder.
-3. Launch the game, load a save, and toggle your flashlight - TightBeam takes over the beam.
+The flashlight shows a beam. Hold `LeftAlt` and scroll the mouse wheel to change focus.
 
-Settings live in `UserData/MelonPreferences.cfg` under `[TightBeam]` - see [Configuration](/mods/tightbeam/guides/configuration/).
+## Next
 
+- [Configuration](/mods/tightbeam/guides/configuration/)

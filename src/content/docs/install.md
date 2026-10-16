@@ -1,69 +1,38 @@
 ---
-title: Install and troubleshoot
-description: How to install a Schedule I mod with a manager or by hand, how to update it, and what to check first when the game stops loading.
+title: Install mods
+description: Install a DooDesch Schedule I mod with a mod manager or by hand.
 sidebar:
   order: 1
 ---
 
-Every mod on this site is a MelonLoader mod for **Schedule I on the IL2CPP branch** - the normal Steam build.
-None of them need the Mono branch.
+Install a mod and everything it needs. A mod manager does it in one click.
 
 ## With a mod manager
 
-Use [r2modman](https://thunderstore.io/c/schedule-i/p/ebkr/r2modman/) or
-[Gale](https://thunderstore.io/c/schedule-i/p/Kesomannen/GaleModManager/). Install the mod from Thunderstore
-and the manager pulls in MelonLoader, S1API and any other dependency, in the right place. Each mod page here
-links straight to its Thunderstore package.
+1. Install [r2modman](https://thunderstore.io/c/schedule-i/p/ebkr/r2modman/) or [Gale](https://thunderstore.io/c/schedule-i/p/Kesomannen/GaleModManager/).
+2. Select Schedule I and create a profile.
+3. Search the mod and click Install. The manager also installs MelonLoader, S1API and every other dependency.
+4. Start the game from the manager.
 
-This is the recommended route. If you are reading this because something broke, the manager also gives you the
-one thing manual installs do not: a profile you can disable mods in, one at a time.
+Each mod page links to its Thunderstore package.
 
 ## By hand
 
-1. Install **MelonLoader 0.7.3 or newer** for Schedule I from
-   [github.com/LavaGang/MelonLoader](https://github.com/LavaGang/MelonLoader/releases). That repository is the
-   only official source; sites that look like a MelonLoader homepage are not run by its authors.
-2. Run the game once so MelonLoader creates its folders.
-3. Drop the mod's `.dll` into `Schedule I/Mods/`.
-4. Install whatever the mod's page lists under **Requires**, the same way.
+1. Install MelonLoader 0.7.3 or newer from [github.com/LavaGang/MelonLoader](https://github.com/LavaGang/MelonLoader/releases). Use only this source.
+2. Start the game once. MelonLoader creates its folders. Close the game.
+3. Put the mod's `.dll` into `Schedule I/Mods/`.
+4. Install every mod that the mod's page lists under "Requires" in the same way.
 
-The mod's page names its dependencies with versions. A missing dependency is the most common reason a mod does
-nothing after installing.
+## Check it works
 
-## Updating
+Open `Schedule I/MelonLoader/Latest.log`. The mod is in the list of loaded mods.
 
-Update the mod and its dependencies together. A mod built against a newer dependency will usually load and then
-fail at the point it calls something that is not there yet - so a mod that worked yesterday and misbehaves today
-is often a half-finished update rather than a broken mod.
+## Update a mod
 
-After a **game** update, expect a lag: the game moves, and mods follow. Check the mod's changelog on this site
-before filing anything.
+Update the mod and its dependencies together. A mod that needs a newer dependency can load and then fail later.
+After a game update, read the mod's changelog before you report a bug.
 
-## When something is wrong
+## Next
 
-**Read the log first.** MelonLoader writes `Schedule I/MelonLoader/Latest.log`. It records every mod that
-loaded, every one that failed, and the exception if one threw. Almost every question is answered in it.
-
-**Find the culprit by halving.** Disable half your mods, start the game, and see whether the problem is still
-there. Repeat with the half that still misbehaves. Four or five restarts identify one mod out of thirty; guessing
-does not.
-
-**Check the obvious three.** MelonLoader version, the mod's listed dependencies, and whether you are on the
-IL2CPP (normal Steam) build.
-
-## Asking someone
-
-The **[DooDesch Mods Discord](https://mods.doodesch.de)** is the fastest route when the log has not told
-you enough, or when you are not sure whether what you are seeing is a bug at all. Bring the log.
-
-## Reporting it
-
-Every mod has a support link on its page, and a bug with a log attached belongs there rather than in chat -
-an issue survives, a message scrolls away. What makes a report actionable:
-
-- `MelonLoader/Latest.log` attached, not pasted in pieces
-- the mod version and the game version
-- whether it happens in single player, as host, or as a client
-- what you did immediately before
-
-Screenshots of a crash help far less than the log does.
+- [Fix a broken install](/fix-install/)
+- [All mods](/mods/)

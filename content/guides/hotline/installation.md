@@ -1,31 +1,38 @@
 ---
-title: "Installation"
-description: "Install Hotline with r2modman or Gale from the Schedule I community."
+title: Install Hotline
+description: Install the Hotline overlay and open it with the F6 key.
 sidebar:
-  order: 1
+  order: 5
 ---
-## Recommended: a Thunderstore mod manager
 
-Install Hotline with r2modman or Gale from the Schedule I community. Its only dependency (MelonLoader) is pulled
-in automatically.
+Install Hotline and open the overlay with F6.
 
-## Manual
+**You need:** the IL2CPP build of Schedule I and MelonLoader 0.7.3. See [Install](/install/) for MelonLoader. Hotline does not use S1API.
 
-1. Install **MelonLoader 0.7.3** for Schedule I (IL2CPP).
-2. Drop **`Hotline.dll`** into your Schedule I `Mods/` folder.
+## Steps
 
-Hotline has no other hard dependency - it does not use S1API.
+1. With a Thunderstore mod manager (r2modman or Gale), install **Hotline**. MelonLoader comes as a dependency.
+2. Without a manager, put `Hotline.dll` in your Schedule I `Mods/` folder.
+3. Start the game.
+
+## Check it works
+
+Press **F6**. The overlay opens.
 
 ## Settings
 
-In `UserData/MelonPreferences.cfg` under `Hotline_01_Main`:
+Settings are in `UserData/MelonPreferences.cfg` under `Hotline_01_Main`.
 
 | Setting | Default | What it does |
 |---|---|---|
 | `Enabled` | `true` | Master on/off. |
-| `MasterHotkey` | `F6` | The key that opens/closes the overlay (any UnityEngine.KeyCode name). Reserved for Hotline. |
-| `InterceptFunctionKeys` | `true` | Detect other mods' F1-F12 and add each as a button in that mod's panel. |
+| `MasterHotkey` | `F6` | Key that opens and closes the overlay. Any `UnityEngine.KeyCode` name. Hotline reserves it. |
+| `InterceptFunctionKeys` | `true` | Detect other mods' F1-F12 keys and add each as a button in that mod's panel. |
 | `SuppressRawFunctionKeys` | `false` | Full takeover: a physical function key opens the overlay instead of reaching the mod. |
-| `HudFontSize` | `12` | Overlay text size (px). |
-| `ShowHud`, `HudX`, `HudY`, `WindowLayouts` | managed | Visibility, position and saved window layouts. |
+| `HudFontSize` | `12` | Overlay text size in px. |
+| `ShowHud`, `HudX`, `HudY`, `WindowLayouts` | managed | Visibility, position and saved window layouts. Hotline writes them. |
 
+## Next
+
+- [Console commands](/mods/hotline/guides/console-commands/)
+- [Add a panel](/mods/hotline/guides/modder-api/)

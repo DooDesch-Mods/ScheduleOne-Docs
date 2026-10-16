@@ -1,49 +1,51 @@
 ---
-title: "Troubleshooting"
-description: "- Check the MelonLoader console/log."
+title: Troubleshoot Personnel
+description: Find the cause and fix for a Personnel pack that does not load, spawn or render.
 sidebar:
-  order: 6
+  order: 5
 ---
+
+Find your symptom below. Check `MelonLoader/Latest.log` first.
+
 ## My pack does not load
 
-- Check the MelonLoader console/log. Every pack logs a line; a broken one logs a warning naming the file:
-  - `manifest has no 'npcs' array` - the JSON root must contain `"npcs": [ ... ]`.
-  - `failed to read manifest.json` - invalid JSON (trailing comma is the usual suspect).
-  - `an NPC entry has no 'name'` - every NPC needs a `name`.
-- The folder must be `UserData/Personnel/Packs/<YourPack>/manifest.json` - one folder per pack, manifest at
-  the folder root.
+Every pack logs one line. A broken pack logs a warning with the file name:
 
-## The log shows my NPCs, but nothing appears in the world
+- `manifest has no 'npcs' array`: the JSON root must contain `"npcs": [ ... ]`.
+- `failed to read manifest.json`: the JSON is invalid. A trailing comma is the usual cause.
+- `an NPC entry has no 'name'`: give every NPC a `name`.
 
-That is expected with only Personnel installed - it is a library. Something has to consume the definitions:
-a mod using [API Reference](/mods/personnel/api/), or any released mod that lists your pack's ids. See
-[Getting Started](/mods/personnel/guides/getting-started/) ("What Personnel does NOT do").
+The manifest must be at `UserData/Personnel/Packs/<YourPack>/manifest.json`. Use one folder per pack.
 
-## My mod's spawn fails / falls back to defaults
+## The log lists my NPCs, but nothing appears in the world
 
-- `no definition '<id>' found` - the pack is not installed or the id is wrong. Ids are DERIVED
-  (`packname_npcname`, lowercased, `_`-collapsed) - check the startup log for the exact strings; a manifest
-  `id` field is ignored. See [Pack Format](/mods/personnel/guides/pack-format/).
-- `DefId` must be a compile-time constant - it is read from an uninitialized instance, so returning a field
-  set in your constructor yields null.
+Without `autoRegister`, Personnel only loads definitions. Set `"autoRegister": true`, or let a mod that uses the [API](/mods/personnel/api/) spawn the ids. An NPC with `"physical": false` appears only as a phone contact.
+
+## An NPC does not walk its schedule
+
+- A step with an invalid `time`, `position` or `type` logs a warning and is skipped.
+- An unknown building or seat name logs a warning and the NPC skips that step.
+- An unreachable destination leaves the NPC where it stood. Pick a point on the navmesh.
+- A step skipped because no player was nearby needs `warpIfSkipped: true`.
+
+## My mod's spawn fails or uses defaults
+
+- `no definition '<id>' found`: the pack is not installed, or the id is wrong. Check the startup log for the exact ids. Without an authored `id`, the id is `packname_npcname`, lowercase.
+- Make `DefId` a compile-time constant. Personnel reads it from an uninitialized instance, so a field set in your constructor returns null.
 - Spawn after a save is loaded, on the host.
 
-## Custom PNG lands on the wrong limb / shows as a blob
+## A custom PNG lands on the wrong limb or shows as a blob
 
-Your PNG is a full UV-space texture, not a centered sticker - see [Custom PNG Layers](/mods/personnel/guides/custom-png-layers/). Also check the
-layer list: `faceLayers` files go to the face mesh, `bodyLayers` files to the body mesh.
+The PNG is a full UV-space texture. Align it to the target UV. See [Custom PNG layers](/mods/personnel/guides/custom-png-layers/). Also check the list: `faceLayers` files go to the face mesh, `bodyLayers` files to the body mesh.
 
 ## Another player does not see the custom art
 
-They need Personnel **and the same pack** installed - custom layers travel as resource paths, not textures.
-See [Multiplayer and Saves](/mods/personnel/guides/multiplayer-and-saves/).
+That player needs Personnel and the same pack. See [Multiplayer and saves](/mods/personnel/guides/multiplayer-and-saves/).
 
-## Example pack does not appear
+## The example pack does not appear
 
-`LoadExamplePack` requires a game **restart** after enabling, and it never overwrites an existing
-`Packs/Examples` folder - delete that folder if you want a fresh copy.
+Restart the game after you set `LoadExamplePack`. Personnel never overwrites an existing `Packs/Examples` folder. Delete the folder to get a fresh copy.
 
-## Still stuck?
+## Still stuck
 
-> (`…/Schedule I/MelonLoader/Latest.log`) and the pack's `manifest.json`.
-
+Send `MelonLoader/Latest.log` and the pack's `manifest.json` to support.

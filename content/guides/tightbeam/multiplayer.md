@@ -1,68 +1,44 @@
 ---
-title: "Multiplayer"
-description: "Since 2.0.0, TightBeam works in co-op."
+title: "Use TightBeam in co-op"
+description: "See other players' flashlights as aimed cones and tune the cost for big lobbies."
 sidebar:
   order: 4
 ---
-Since 2.0.0, TightBeam works in co-op. Everyone else's flashlight is a cone, aimed where they are
-looking, with their own focus, brightness and colour.
+In co-op, every other flashlight is a cone aimed where that player looks. Nobody else needs the mod.
 
 ## What you get
 
-- **Cones instead of dots.** The base game shows another player's flashlight as a small point light on
-  their body. TightBeam replaces it with the same beam you have, pointed the same way they are.
-- **Their settings, not yours.** If they have TightBeam, their focus, brightness and colour come across
-  live. Effects come across too, so a mod that flickers or blacks out their beam looks right to you.
-- **Late joiners see the lights that are already on.** The base game never tells a joining player about a
-  flashlight that was switched on before they arrived, so those players stay dark until the owner toggles.
-  TightBeam carries that state itself and fixes it.
-- **Players without the mod still get a cone**, drawn from your own default settings.
+- The base game shows another player's flashlight as a small point light. TightBeam replaces it with a cone like yours.
+- If the other player has TightBeam, you see their focus, brightness, colour and effects live.
+- Players without TightBeam still get a cone, drawn with your default settings.
+- Players who join late see flashlights that are already on. The base game leaves those dark until the owner toggles.
 
-## Needs a Steam lobby
+Sharing settings needs a Steam lobby. In a direct connect, on a dedicated server or in single-player, cones are still aimed correctly but use your defaults.
 
-The sharing rides on the Steam lobby the game already uses, so it needs one. In a session without a Steam
-lobby - a direct connect, a dedicated server, or single-player - other players still get proper cones,
-aimed correctly, with your default settings. What you lose there is their individual focus, colour and
-effects.
+## Steps
 
-## Not everyone needs the mod
+1. If a big lobby costs frames, lower `MaxRemoteBeams` (default `4`).
+2. If it still costs frames, lower `RemoteBeamMaxDistance` (default `70` m).
+3. Keep `RemoteShadowNearest` at `0` (no shadows on other players' beams).
 
-Nothing has to match. If you have TightBeam and nobody else does, you still see everyone with a proper
-cone - you just see your defaults rather than their settings. If they have it too, you see exactly what
-they see. Nothing is required of the host.
+TightBeam never draws a beam that is off screen. Settings are in [Configuration](/mods/tightbeam/guides/configuration/).
 
-## Keeping a big lobby smooth
+## Turn parts off
 
-Lights are the expensive part, so TightBeam caps them rather than lighting everyone:
+- `RemoteBeams = false`: do not draw other players' cones. You still share yours.
+- `SyncMyBeam = false`: do not share your beam. You still see theirs.
+- `RemoteBeamsForUnmoddedPlayers = false`: draw cones only for players with TightBeam.
+- `SuppressRemoteVanillaLights = false`: keep their vanilla light, so you see both.
 
-- at most `MaxRemoteBeams` at once (default `4`), nearest first
-- nothing past `RemoteBeamMaxDistance` (default `70` m)
-- nothing that is not on screen
-- no shadows on other players' beams (`RemoteShadowNearest`, default `0`)
+## Check it works
 
-If frames get tight, drop `MaxRemoteBeams` first, then the distance. All of it is in
-[Configuration](/mods/tightbeam/guides/configuration/).
+Join a lobby with a second player. Their flashlight shows as a cone that follows their aim.
 
-## Turning it off
+## How it syncs
 
-- `RemoteBeams = false` - stop drawing other players' cones. You still share yours.
-- `SyncMyBeam = false` - stop sharing yours (your notice comes down straight away). You still see theirs.
-- `RemoteBeamsForUnmoddedPlayers = false` - only draw cones for players who actually have TightBeam.
-- `SuppressRemoteVanillaLights = false` - leave their vanilla light alone, so you see both.
+The game already sends look direction and flashlight state to every player, and TightBeam reads them. Beam shape and colour go into your own slot in the Steam lobby data. Others read it. Nobody can write another player's slot, so there is no host role and nothing to desync. Players without the mod run nothing because of you.
 
-## How it works, briefly
+## Next
 
-Where you are looking and whether your flashlight is on are things the game already sends to every
-player, so TightBeam just reads them. It never sends a position or a rotation and never writes to the
-game's own state.
-
-Only the beam's shape and colour need sharing, and those go on a noticeboard rather than in messages:
-each player writes their own beam into their own slot of the Steam lobby, and everyone running TightBeam
-reads the others'. Nobody can write anyone else's slot, so there is no host and nothing to desync. Steam
-hands a joining player the existing notices by itself, which is why late joiners just work.
-
-**Players without the mod are not touched by any of this.** The game itself never reads or writes that
-part of the lobby, so nothing runs on their machine because of you - no messages, no log lines, nothing.
-
-Modders: see [Modder API](/mods/tightbeam/guides/modder-api/) for reading other players' beams.
-
+- [Control the flashlight](/mods/tightbeam/guides/modder-api/) (read other players' beams)
+- [Configuration](/mods/tightbeam/guides/configuration/)

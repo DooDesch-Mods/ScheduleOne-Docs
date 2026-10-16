@@ -1,35 +1,18 @@
 ---
-title: "Getting Started"
-description: "1."
+title: Make a tattoo pack
+description: Add your own tattoo to the Schedule I tattoo shop with a manifest.json and a PNG.
 sidebar:
-  order: 3
+  order: 1
 ---
-## Install
 
-1. Install **MelonLoader 0.7.3+** for Schedule I.
-2. Install **S1API** (ifBars/S1API_Forked) - its DLLs go in `Mods/` and `Plugins/` per its own instructions.
-3. Drop **`Inkorporated.dll`** into your `…/Schedule I/Mods/` folder.
-   (A Thunderstore mod manager like r2modman/Gale pulls MelonLoader + S1API in automatically.)
+Make a tattoo pack: a folder with a `manifest.json` and a PNG. Your tattoo appears in the in-game tattoo shop.
 
-## See the format instantly: the bundled example pack
+**You need:** Inkorporated and S1API installed. See [Install](/install/) for MelonLoader, S1API and the mod DLL.
 
-Inkorporated ships a small example pack, off by default. Turn it on to get a few working tattoos plus a
-folder/manifest template to copy:
+## Steps
 
-1. Set **`LoadExamplePack`** to `true` in
-   `…/Schedule I/UserData/MelonPreferences.cfg` under `[Inkorporated_01_Main]`.
-2. Restart the game.
-3. Look in `…/Schedule I/UserData/Inkorporated/Packs/Examples/` - that is a complete pack you can copy.
-   The tattoos also appear in the in-game tattoo shop.
-
-(Enabling it never overwrites an existing `Examples` folder, so your edits are safe.)
-
-## Make your first tattoo
-
-### The no-code way (content pack)
-
-1. Create `…/Schedule I/UserData/Inkorporated/Packs/MyPack/`.
-2. Add a `manifest.json`:
+1. Create the folder `Schedule I/UserData/Inkorporated/Packs/MyPack/`.
+2. Create `manifest.json` in that folder:
    ```json
    {
      "name": "My Pack",
@@ -39,30 +22,41 @@ folder/manifest template to copy:
      ]
    }
    ```
-3. Put `skull.png` (a transparent PNG) next to it. **Important:** the opaque pixels must sit at the chest's
-   UV region - see [Authoring Tattoos](/mods/inkorporated/guides/authoring-tattoos/). Use the example pack's PNGs as a reference.
-4. Launch - "Skull" appears in the tattoo shop's Chest category.
+3. Put `skull.png` next to it. Use a transparent PNG. The opaque pixels must sit at the UV region of the chest. See [Author a tattoo PNG](/mods/inkorporated/guides/authoring-tattoos/).
+4. Start the game.
 
-Full schema: [Pack Format](/mods/inkorporated/guides/pack-format/).
+To start from a working pack, set `LoadExamplePack` to `true` under `[Inkorporated_01_Main]` in `UserData/MelonPreferences.cfg`. Restart. Inkorporated writes `UserData/Inkorporated/Packs/Examples/`. It never overwrites an existing folder. Its tattoos also appear in the shop.
 
-### The code way (the API)
+## Check it works
 
-In a MelonLoader mod that lists Inkorporated as a dependency:
+`MelonLoader/Latest.log` shows `Pack 'MyPack' (...): 1 tattoo(s)`. In the tattoo shop, "Skull" appears in the Chest category.
+
+## Register a tattoo from code
+
+Use this path when your own mod ships the tattoo. List Inkorporated as a dependency and register early:
+
 ```csharp
 using Inkorporated;
 using Inkorporated.Model;
 
-// In OnInitializeMelon (register early):
+// In OnInitializeMelon:
 API.RegisterTattooFromFile("skull", "Skull", TattooPlacement.Chest, pngPath, source: "MyMod");
 ```
-Full reference: [API Reference](/mods/inkorporated/api/). A ready-to-build project is in the
-[example repo](https://github.com/DooDesch-Mods/ScheduleOne-InkorporatedExample).
 
-## Where things live
+A ready project is in the [example repo](https://github.com/DooDesch-Mods/ScheduleOne-InkorporatedExample).
 
-| Path | What |
-|------|------|
-| `UserData/Inkorporated/Packs/<Pack>/` | Your tattoo packs (folder + `manifest.json` + PNGs) |
-| `UserData/Inkorporated/Templates/` | UV reference textures (only a **DEBUG** build of Inkorporated writes these) |
-| `UserData/MelonPreferences.cfg` -> `[Inkorporated_01_Main]` | The `LoadExamplePack` toggle |
+## Where files live
 
+| Path | Content |
+|------|---------|
+| `UserData/Inkorporated/Packs/<Pack>/` | Your packs: folder, `manifest.json`, PNGs |
+| `UserData/Inkorporated/Templates/` | UV reference textures. Only a DEBUG build writes them. |
+| `UserData/MelonPreferences.cfg`, `[Inkorporated_01_Main]` | The `LoadExamplePack` toggle |
+
+## Next
+
+- [Pack format](/mods/inkorporated/guides/pack-format/)
+- [Author a tattoo PNG](/mods/inkorporated/guides/authoring-tattoos/)
+- [Multiplayer, saves and NPCs](/mods/inkorporated/guides/multiplayer-saves-and-npcs/)
+- [Troubleshooting](/mods/inkorporated/guides/troubleshooting/)
+- [API reference](/mods/inkorporated/api/)
