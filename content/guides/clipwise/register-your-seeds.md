@@ -75,7 +75,9 @@ internal static class ClipwiseProbe
 Keep this type name even when you register nothing. Clipwise finds it by name. Without it, Clipwise scans all types of your assembly, and that scan can crash a mod with many IL2CPP references.
 
 ## Check it works
-Start the game and open the log. Clipwise writes `Clipwise: picked up N mod probe(s).` when it finds a `ClipwiseProbe`. Then pick up the management clipboard and click a pot's seed field. The picker shows a tab named after your category label, with your items in it.
+Start the game and open the log. Clipwise writes `Clipwise: picked up N mod probe(s).` when it finds a `ClipwiseProbe`. Then pick up the management clipboard and click a pot's seed field. The picker shows a section named after your category label, with your items in it. A seed the game itself ships stays under "Vanilla seeds", and your tags show in its details.
+
+![The seed picker with Green Crack selected, its details showing Tier 2 from yourname.yourmod](/img/guides/clipwise/seed-picker.webp)
 
 If a registration is rejected, the log shows `Clipwise: RegisterItem failed: ...` or `Clipwise: RegisterCategory failed: ...`.
 

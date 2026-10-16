@@ -53,6 +53,8 @@ Hotline clamps the value to `[min, max]` and snaps it to `step` before it calls 
 3. Run `hotline slider Yoink:size`. It prints the value, range and step.
 4. Run `hotline slider Yoink:size 0.85`. The value is clamped and snapped like a drag.
 
+![The Yoink (Winch) panel with the size slider at 1.00 x and the pull force slider at 20000 N](/img/guides/hotline/yoink-sliders.webp)
+
 ## Label collisions
 
 A slider id is `<panelId>:<slug of the label>`. The slug keeps letters and digits, lowercases them and turns every other run of characters into one hyphen.
