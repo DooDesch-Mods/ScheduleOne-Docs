@@ -87,6 +87,9 @@ Gamemode registered: 'Your Mode' (you.yourmode).
 ```
 
 Your row is in the hub. Click Solo, and `OnLaunchSingleplayer` runs.
+
+![The Side Hustle hub with the "Your Mode" row selected: icon, name, author and the Host, Join and Solo buttons](/img/guides/sidehustle/hub-your-mode.webp)
+
 A problem in the descriptor is logged with the gamemode id and the field name.
 
 ## Next

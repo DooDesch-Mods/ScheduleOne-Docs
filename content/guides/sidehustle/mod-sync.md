@@ -56,8 +56,13 @@ Advertise = true,
 
 1. Open the classic host form for a vanilla co-op lobby with your mod loaded.
 2. The "Mod sync" note counts your mod: "install automatically", "need a download link" or "cannot sync".
+
+   ![The Mod sync note on the host form: "Joiners get your mod set: 9 of 11 install automatically, 2 cannot sync."](/img/guides/sidehustle/mod-sync-note.webp)
+
 3. For a gamemode lobby, the host log shows `[mp] join mod set published: N file(s) (A auto, G github, L link, U unsourced).`
 4. Join from a second instance without your mod. Your mod shows as an automatic install or as a checklist entry with your link.
+
+   ![The Manual installs checklist: one row per mod with its version, the reason it needs a manual install, and an Open Nexus or Find online button](/img/guides/sidehustle/manual-checklist.webp)
 
 ## Next
 

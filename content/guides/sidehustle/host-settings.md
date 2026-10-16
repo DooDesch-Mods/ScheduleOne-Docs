@@ -80,7 +80,10 @@ Give the host a form with your settings. Side Hustle sends the chosen values to 
 ## Check it works
 
 1. Click Host on your row and open the full form.
-2. Your settings show under their category headers, with the preset picker above them.
+2. Your settings show under their category headers. With `Presets`, the preset picker is above them.
+
+   ![The full Host form with a Rounds section: a Round time slider at 300 s, a Two/Four Teams choice and a Friendly fire toggle with its hint](/img/guides/sidehustle/host-form.webp)
+
 3. Host, then join with a second instance. Log `roundTime` on both: the values are the same.
 
 ## Next

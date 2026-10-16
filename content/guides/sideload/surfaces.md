@@ -54,6 +54,8 @@ A surface has no home-screen icon, no turnable orientation, no badge and no noti
 
 The page draws inside the panel at the size you expect. `Surfaces.IsMounted(id)` returns true. It returns false once the panel is destroyed.
 
+![A Sideload page mounted on a 600x400 panel over the game, drawn by the sideloadsurface 600 400 command](/img/guides/sideload/surface-panel.webp)
+
 ## Next
 
 - [The bridge](/mods/sideload/guides/the-bridge/) - `s1.call`, `Emit`, storage and `fetch` work the same on a surface.
