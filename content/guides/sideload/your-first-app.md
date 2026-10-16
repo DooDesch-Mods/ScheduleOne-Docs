@@ -252,6 +252,8 @@ The file watcher starts only if that folder exists when the page first builds. I
 
 Open the phone. The Stash icon is on the home screen. Open it, type an item, and press Add. The list and the counter update.
 
+![The Stash app on the phone with three items and the counter at 3, the Add an item field and the Add button below](/img/guides/sideload/stash-app.webp)
+
 ## Next
 
 - [The bridge](/mods/sideload/guides/the-bridge/)
