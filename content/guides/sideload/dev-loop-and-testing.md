@@ -48,6 +48,7 @@ Debug builds only, typed into the game's dev console. The console needs `Setting
 | `sideloadkey <key>` | delivers that press down the real path, gate included - `sideloadkey Enter` |
 | `sideloadwheel [notches] [appId]` | turns the wheel over the newest page through the real raycast and names what took the notch. Negative scrolls down |
 | `sideloadsurface [off\|<width> <height>]` | mounts the selftest bundle in a panel at the middle of the screen, at the size you pick |
+| `sideloadgamma [hex]` | for every mounted page, names the canvas, its render mode and camera, and what a colour turns into on the way to the shader - `sideloadgamma #3a3d42` |
 
 ## Read the log first
 
