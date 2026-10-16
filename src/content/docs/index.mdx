@@ -1,6 +1,6 @@
 ---
 title: DooDesch Mod Docs
-description: Documentation for the DooDesch Schedule I mods - what each one does, how to install it, and the full API reference for the ones other mods build on.
+description: Install the DooDesch Schedule I mods, or build your own mod on top of their APIs.
 template: splash
 head:
   # Starlight appends the site title to every page title; on the one page whose title already is the site
@@ -8,36 +8,39 @@ head:
   - tag: title
     content: DooDesch Mod Docs
 hero:
-  tagline: Every DooDesch Schedule I mod, and every API they expose. Generated from the mod repositories at their latest release.
+  tagline: Install the DooDesch Schedule I mods, or build your own mod on top of them.
   actions:
-    - text: All mods
-      link: mods/
-      icon: right-arrow
-      variant: primary
-    - text: Install and troubleshoot
+    - text: Install mods
       link: install/
       icon: download
-      variant: minimal
-    - text: Using a mod API
-      link: using-a-mod-api/
+      variant: primary
+    - text: Build a mod
+      link: build/
       icon: seti:c-sharp
-      variant: minimal
+      variant: primary
 ---
 
-import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-## Two kinds of reader
+## Play
 
 <CardGrid>
-  <LinkCard title="I want to play with these" href="install/" description="Install with a manager or by hand, update safely, and find the culprit when the game stops loading." />
-  <LinkCard title="I want to build against one" href="using-a-mod-api/" description="How the mod APIs are shipped, and what happens when the host mod is not installed." />
-  <LinkCard title="Show me everything" href="mods/" description="Every mod, what it does, and which version is current." />
-  <LinkCard title="I am an agent" href="agents/" description="An MCP server that answers with the real API surface instead of a guess." />
-  <LinkCard title="I want to ask a person" href="https://mods.doodesch.de" description="The DooDesch Mods Discord: help with a broken install, and where new mods get announced first." />
+  <LinkCard title="Install mods" href="install/" description="Install a mod with a mod manager or by hand." />
+  <LinkCard title="Fix a broken install" href="fix-install/" description="Find the mod that stops your game and fix it." />
+  <LinkCard title="All mods" href="mods/" description="Every mod, what it does and its current version." />
 </CardGrid>
 
-## How this stays current
+## Build
 
-Nothing here is written by hand except the guides. A build reads the GitHub org, takes every public repo
-tagged `game-schedule-i` at its latest release, and regenerates the overview, the changelog and the API
-reference from that repo's own files. A new mod appears by being tagged, not by anyone editing this site.
+<CardGrid>
+  <LinkCard title="What do you want to build?" href="build/" description="Pick your task and go to the guide that does it." />
+  <LinkCard title="Call another mod's API" href="using-a-mod-api/" description="Add the file or DLL and keep your mod working without it." />
+  <LinkCard title="Use with an AI agent" href="agents/" description="Give your coding agent the real API of every mod." />
+</CardGrid>
+
+## Help
+
+<CardGrid>
+  <LinkCard title="Ask on Discord" href="https://mods.doodesch.de" description="The DooDesch Mods Discord." />
+  <LinkCard title="Report a bug" href="https://support.doodesch.de" description="Open a ticket with your log attached." />
+</CardGrid>

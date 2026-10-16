@@ -1,107 +1,75 @@
 ---
-title: "Modder API"
-description: "Snitch lets any mod report its own performance, and it is a **zero-overhead no-op when Snitch is not"
+title: Profile your mod
+description: Show your mod's timings, counters and controls in the Snitch overlay and web dashboard.
 sidebar:
-  order: 4
+  order: 1
 ---
-Snitch lets any mod report its own performance, and it is a **zero-overhead no-op when Snitch is not
-installed** - so you can ship the integration unconditionally with no hard dependency. Full working example:
-[ScheduleOne-SnitchExample](https://github.com/DooDesch-Mods/ScheduleOne-SnitchExample).
 
-## You get the basics for free
+Add a Snitch panel to your mod. It shows your counters, state bars, buttons, toggles, sliders and log in the overlay and the web dashboard.
 
-When Snitch is installed and sampling, it **auto-times every loaded mod's per-frame methods** (`OnUpdate`,
-`OnFixedUpdate`, `OnLateUpdate`, `OnGUI`) and shows them as `<YourMod>.OnUpdate` etc. - with **zero code on
-your side**. Your mod already appears in the profiler's frame budget without integrating anything at all.
+Snitch times `OnUpdate`, `OnFixedUpdate`, `OnLateUpdate` and `OnGUI` of every loaded mod without any code. Your mod already appears as `<YourMod>.OnUpdate`. Follow the steps only if you want more.
 
-Add the API below only to go further: your own panel (counters, state, free text, action buttons, toggles,
-sliders and a log), hand-timed sub-sections, or ablation levers.
+**You need:** Snitch in your test game and a MelonLoader mod project. Players do not need Snitch: every call is a no-op without it.
 
-## Add the API
+## Steps
 
-- **Copy-in source (recommended):** drop `Snitch.cs` (from the example repo) into your mod project. It
-  compiles into your DLL - nothing extra to ship.
-- **Reference the DLL:** reference `Snitch.Api.dll`.
+1. Copy `Snitch.cs` from [ScheduleOne-SnitchExample](https://github.com/DooDesch-Mods/ScheduleOne-SnitchExample) into your project. It compiles into your DLL. You can reference `Snitch.Api.dll` instead.
+2. Add a static class named `SnitchProbe` with a static `Register()` method. Snitch finds and calls it. You do not call it yourself.
+3. Register a panel in `Register()` and add controls.
 
-Both bind to the running Snitch host by reflection, so they share no type with it and work regardless of load
-order (registrations are queued until the host is up).
+   ```csharp
+   using Snitch.Api;   // Profiler, Panel, StateSnapshot
 
-## Give your mod a panel with zero wiring
+   internal static class SnitchProbe
+   {
+       public static void Register()
+       {
+           Panel p = Profiler.RegisterPanel("MyMod", "My Mod");
+           p.Counter("QueueLength", () => MyMod.Queue.Count, "items");
+           p.State("Jobs", () => new StateSnapshot { Title = "Jobs" }
+               .Add("running", MyMod.Running).Add("queued", MyMod.Queued));
+           p.Text(() => $"mode: {MyMod.Mode}");
+           p.Action("Flush queue", () => MyMod.Flush());
+           p.Toggle("Verbose", () => MyMod.Verbose, v => MyMod.Verbose = v);
+           p.Slider("batch size", 1, 64, () => MyMod.Batch, v => MyMod.Batch = (int)v, 1);
+           p.Log();
+       }
+   }
+   ```
 
-Name a class `SnitchProbe` with a static `Register()` anywhere in your mod. Snitch **discovers and calls it
-automatically** - you never wire a call into your `OnInitializeMelon`. There, declare a **panel**: your mod's
-own toggleable, movable, resizable area in the Snitch overlay and web dashboard, holding your counters, state,
-free text, action buttons, toggles, sliders and a log channel:
+4. Time a hot section by hand. The call allocates nothing and does nothing when Snitch is not sampling.
 
-```csharp
-using Snitch.Api;   // Profiler, Panel, StateSnapshot
+   ```csharp
+   using (Profiler.Sample("MyMod.Pathfinding")) { /* expensive work */ }
 
-internal static class SnitchProbe
-{
-    public static void Register()
-    {
-        Panel p = Profiler.RegisterPanel("MyMod", "My Mod");        // counters/state added here become "MyMod.*"
-        p.Counter("QueueLength", () => MyMod.Queue.Count, "items"); // numeric gauge
-        p.State("Jobs", () => new StateSnapshot { Title = "Jobs" }  // name -> count distribution (bars)
-            .Add("running", MyMod.Running).Add("queued", MyMod.Queued));
-        p.Text(() => $"mode: {MyMod.Mode}");                        // free multi-line readout
-        p.Action("Flush queue", () => MyMod.Flush());              // a button (replaces a debug hotkey)
-        p.Toggle("Verbose", () => MyMod.Verbose, v => MyMod.Verbose = v); // an on/off control
-        p.Slider("batch size", 1, 64,                                // a draggable value, snapped to whole steps
-            () => MyMod.Batch, v => MyMod.Batch = (int)v, 1);
-        p.Log();                                                    // show this panel's log channel
-    }
-}
-```
+   // Skip even the call on a hot loop:
+   if (Profiler.Enabled) using (Profiler.Sample("MyMod.Tick")) { /* ... */ }
+   ```
 
-Open it in-game from the Overview window's `windows` list; `snitch panels` lists them. Actions, toggles and
-sliders run on the Unity main thread, so they may touch game objects. Send a log line with `p.Write("...")` or
-`Profiler.Log("MyMod", "...")` - it shows in your panel log and the combined timeline.
+5. Optional: register an ablation lever. `snitch ablate mymod.fx` then measures what your subsystem costs per frame.
 
-Sliders have their own page, including the id collision that silently deletes controls: **[Sliders](/mods/snitch/guides/sliders/)**.
+   ```csharp
+   Profiler.RegisterAblationLever("mymod.fx", apply: () => DisableFx(), restore: () => EnableFx());
+   ```
 
-## The full API
+6. Optional: mark a one-off spike with `Profiler.Mark("MyMod.LevelLoaded")`.
 
-```csharp
-using Snitch.Api;   // Profiler, Panel, StateSnapshot, Scope
+## Check it works
 
-// A panel groups everything below under your mod (the fluent builder above). Lower-level calls also exist:
-//   Profiler.RegisterCounter / RegisterStateProvider / RegisterAction / RegisterToggle / RegisterSlider /
-//   RegisterText / Log
-
-// Hand-time a sub-section (finer than the automatic per-mod timing). No heap alloc; no-op when not sampling.
-using (Profiler.Sample("MyMod.Pathfinding")) { /* expensive work */ }
-
-// gate hot loops for the absolutely-free path:
-if (Profiler.Enabled) using (Profiler.Sample("MyMod.Tick")) { /* ... */ }
-
-// A numeric gauge (polled a few Hz by the host).
-Profiler.RegisterCounter("MyMod.QueueLength", () => _queue.Count, "items");
-
-// An entity/state distribution (a bar panel in the HUD + web dashboard).
-Profiler.RegisterStateProvider("MyMod.Jobs", () =>
-    new StateSnapshot { Title = "Jobs" }.Add("running", _running).Add("queued", _queued));
-
-// A value you tune by dragging. Clamped to [min,max] and snapped to the step before your setter runs, whether
-// the write came from the overlay, the dashboard or 'snitch slider'. Step 0 = continuous.
-Profiler.RegisterSlider("MyMod", "pull force", 0, 60000,
-    () => Preferences.PullNewtons, v => Preferences.PullNewtons = (float)v, step: 500, unit: "N");
-
-// An ablation lever so 'snitch ablate mymod.fx' measures your subsystem's causal frame cost.
-Profiler.RegisterAblationLever("mymod.fx", apply: () => DisableFx(), restore: () => EnableFx());
-
-// Mark a one-off spike.
-Profiler.Mark("MyMod.LevelLoaded");
-```
+1. Start the game and run `snitch start` in the console.
+2. Run `snitch panels`. Your panel and its control counts appear.
+3. Open the panel from the `windows` list of the Overview window, or in the [web dashboard](/mods/snitch/guides/web-dashboard/).
 
 ## Rules
 
-- Call from the **Unity main thread**. Counter, state, action, toggle and slider delegates are invoked by the
-  host on the main thread, so they may safely touch game objects.
-- Prefix labels with `MyMod.` so they roll up per mod in the HUD and dashboard.
-- `Profiler.Sample` returns a `readonly struct` scope - no heap allocation, and `Dispose` is a no-op when
-  Snitch isn't sampling.
+- Call the API from the Unity main thread. Snitch also runs your counter, state, action, toggle and slider delegates on the main thread, so they may use game objects.
+- Prefix labels with `MyMod.` so they group per mod.
+- Write log lines with `p.Write("...")` or `Profiler.Log("MyMod", "...")`. They appear in your panel and in the combined timeline.
+- Registrations made before Snitch loads are queued. Load order does not matter.
+- Lower-level calls exist: `Profiler.RegisterCounter`, `RegisterStateProvider`, `RegisterAction`, `RegisterToggle`, `RegisterSlider`, `RegisterText`, `Log`.
 
-Your sections, counters and states appear live in the in-game HUD and the [Web Dashboard](/mods/snitch/guides/web-dashboard/),
-right alongside the vanilla NPC/trash/quest data.
+## Next
 
+- [Add a slider](/mods/snitch/guides/sliders/)
+- [Console commands](/mods/snitch/guides/console-commands/)
+- [API reference](/mods/snitch/api/)

@@ -1,37 +1,27 @@
 ---
-title: "Multiplayer, Saves and NPCs"
-description: "A player's tattoos are stored as a list of resource-path strings in the avatar appearance, which the game"
+title: Use tattoos in multiplayer, saves and on NPCs
+description: Make custom tattoos sync between co-op players, survive save and load, and appear on S1API NPCs.
 sidebar:
-  order: 5
+  order: 4
 ---
-## Saves
 
-A player's tattoos are stored as a list of resource-path strings in the avatar appearance, which the game
-serialises to JSON (`…/Saves/.../Players/<code>/Appearance.json`). Custom tattoo paths round-trip through
-save/load unchanged. As long as the mod + pack are installed, the tattoo re-renders on load; if they are
-missing, the path is simply skipped (no tattoo, no crash).
+Make custom tattoos work in co-op, in saves and on S1API NPCs.
 
-## Multiplayer
+## Multiplayer and saves
 
-The game networks appearance by sending the whole avatar-settings object - including the tattoo path strings
-- over its FishNet RPCs. So a custom tattoo **is** transmitted to other players. Whether they *see* it:
+1. Install Inkorporated and the same pack on every player's machine.
+2. Do nothing else. The game sends the tattoo path strings with the avatar settings over its FishNet RPCs.
+3. Expect the save to store the paths in `Saves/.../Players/<code>/Appearance.json`. They survive save and load unchanged.
 
-- A client that has **Inkorporated + the same pack/registration at the same path** renders it normally.
-- A client **without** it receives the path but cannot resolve it, so that layer is skipped. No desync, no
-  crash - they just do not see that one tattoo.
+A client without the mod or the pack gets the path but cannot resolve it. That client skips the layer. There is no desync and no crash. If you remove the pack, the tattoo is skipped on load.
 
-**Takeaway:** for everyone in a co-op session to see each other's custom tattoos, all of them need the mod
-and the same content. This is the normal caveat for any custom-content mod.
+## Put a tattoo on an S1API NPC
 
-## Putting a tattoo on an S1API NPC
+**You need:** a registered tattoo. See the [API reference](/mods/inkorporated/api/).
 
-Because tattoos register through the game's `Resources.Load`, the exact path Inkorporated assigns also works
-in an S1API NPC appearance. Two steps:
-
-1. **Register first** (see [API Reference](/mods/inkorporated/api/)). Note the resulting path:
-   `Avatar/Layers/Tattoos/custom/<segment>/<Source>_<Id>` (segment = `Face` for face, else the lowercase
-   placement).
-2. **Use that path** when you build the NPC's appearance, before it is applied:
+1. Register the tattoo in your mod init, before the NPC appearance is built.
+2. Build the path: `Avatar/Layers/Tattoos/custom/<segment>/<Source>_<Id>`. The segment is `Face` for face tattoos, otherwise the lowercase placement.
+3. Use the path in the NPC appearance:
 
 ```csharp
 // after API.RegisterTattoo("ring", "Ring", TattooPlacement.Face, tex, source: "MyMod");
@@ -39,6 +29,11 @@ appearance.WithFaceLayer<FaceTattoos>("Avatar/Layers/Tattoos/custom/Face/MyMod_r
 // body placements use WithBodyLayer<ChestTattoos>/<LeftArmTattoos>/<RightArmTattoos>(path, color)
 ```
 
-Timing matters: the layer must be **registered before the NPC's appearance is built/applied**, so do your
-`API.RegisterTattoo(...)` call early (e.g. your mod's init), the same as for the player shop.
+## Check it works
 
+The NPC shows the tattoo when spawned. If the layer is missing, you registered after the appearance was applied. Move `API.RegisterTattoo` earlier.
+
+## Next
+
+- [Troubleshooting](/mods/inkorporated/guides/troubleshooting/)
+- [API reference](/mods/inkorporated/api/)

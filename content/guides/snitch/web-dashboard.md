@@ -1,56 +1,52 @@
 ---
-title: "Web Dashboard"
-description: "Snitch runs a tiny loopback server inside the game (`127.0.0.1:6140`) and streams live profiler data over"
+title: Open the web dashboard
+description: Watch live Snitch data in a browser, or read it from your own tool over JSON.
 sidebar:
   order: 3
 ---
-Snitch runs a tiny loopback server inside the game (`127.0.0.1:6140`) and streams live profiler data over
-WebSocket. A browser dashboard renders it in real time: a streaming frame-time chart, per-section costs,
-entity-state distributions, counters, and a capability/honesty panel.
 
-**Your telemetry never leaves your machine** - the page connects straight to `ws://127.0.0.1:6140`. The
-hosted site only serves the static app.
+Open the Snitch dashboard in your browser. It shows a live frame chart, section costs, state bars, counters and your mod panels.
 
-## Three ways to open it
+Snitch runs a loopback server at `127.0.0.1:6140` and streams data over WebSocket. The data never leaves your machine. The hosted site serves only the static app.
 
-- **From the game.** The Snitch panel in the overlay has an **Open dashboard** button, and the console has
-  `snitch dashboard`. Both pick the right address for you: the bundled copy at `http://127.0.0.1:<port>/` when
-  one is installed beside the DLL in `Mods/Snitch/wwwroot`, and the hosted site otherwise. If the local data
-  server is switched off, neither opens anything - a dashboard would have nothing to connect to, so it says so
-  instead. Turn the server back on with `ServerEnabled` in MelonPreferences and restart.
-- **Hosted:** open **[snitch.doodesch.de](https://snitch.doodesch.de)** in your browser. It auto-discovers
-  your local game and connects.
-- **Offline / bundled:** the exact same dashboard is bundled inside the mod and served at
-  **`http://localhost:6140/`** - works with no internet.
+## Steps
 
-## Auto-connect
+1. Start the game and load a save.
+2. Open the dashboard in one of three ways:
+   - Press **Open dashboard** in the Snitch panel, or run `snitch dashboard`. Snitch picks the bundled copy (`Mods/Snitch/wwwroot`) if present, and the hosted site otherwise.
+   - Open [snitch.doodesch.de](https://snitch.doodesch.de). It finds your game on its own.
+   - Open `http://localhost:6140/`. This copy works offline.
+3. If Chrome asks to "allow access to your local network", allow it. The hosted page needs it.
+4. Press **Start**, or run `snitch start`. The dashboard stays idle until sampling is armed.
 
-The dashboard scans the loopback port, opens the WebSocket, and reconnects if the game restarts. When you open
-the hosted (HTTPS) page, Chrome may show a one-time **"allow access to your local network"** prompt - allow it
-(the server already sends the Private-Network-Access header).
+If the local data server is off, `snitch dashboard` opens nothing. Set `ServerEnabled` in MelonPreferences and restart.
 
-## Reading it
+## Check it works
 
-- **Frame chart** - hover any point to read its value. X = recent samples (newest at the right), Y = mean
-  frame time in ms (lower is better).
-- **Sections** - per-section ms/frame, grouped by mod. Click a group header to collapse it; hover a row for
-  the worst-frame ms and calls/frame.
-- **State distributions** - hover a bar for the exact count and its share of the total.
-- **Controls** - Start / Stop / Reset sampling and Export a report, straight from the page.
-- **Mod panels** - each mod's own card, with its text readout, action buttons, toggles and
-  [sliders](/mods/snitch/guides/sliders/). Drag a slider here and the game applies it live, clamped and snapped by the host.
+The page shows a moving frame-time chart. If it says "Searching...", see [Troubleshooting](/mods/snitch/guides/troubleshooting/).
 
-## Connecting your own dashboard
+## What the page shows
 
-The data is plain JSON. `GET /snapshot` returns the full state; `ws://127.0.0.1:6140/stream` pushes it live;
-`GET /health` and `GET /caps` describe the instance; `POST /control` writes. See the wire format in the mod's
-[`Server/WireProtocol.cs`](https://github.com/DooDesch-Mods/ScheduleOne-Snitch/blob/main/Server/WireProtocol.cs),
-and the dashboard's own source at
-[ScheduleOne-SnitchWeb](https://github.com/DooDesch-Mods/ScheduleOne-SnitchWeb).
+- **Frame chart:** mean frame time in ms, newest sample on the right. Lower is better. Hover a point for its value.
+- **Sections:** ms/frame per section, grouped by mod. Click a group header to collapse it. Hover a row for worst-frame ms and calls/frame.
+- **State distributions:** hover a bar for its count and share.
+- **Controls:** Start, Stop, Reset and report export.
+- **Mod panels:** one card per mod with text, buttons, toggles and [sliders](/mods/snitch/guides/sliders/). The host clamps and snaps slider values.
 
-### Sliders on the wire
+## Read the data in your own tool
 
-Each entry of `panels[]` carries a `sliders` array beside `actions` and `toggles`:
+The data is JSON.
+
+| Endpoint | Use |
+|---|---|
+| `GET /snapshot` | Full state. |
+| `ws://127.0.0.1:6140/stream` | Live push of the state. |
+| `GET /health`, `GET /caps` | Describe the instance. |
+| `POST /control` | Write a command. |
+
+The wire format is in [`Server/WireProtocol.cs`](https://github.com/DooDesch-Mods/ScheduleOne-Snitch/blob/main/Server/WireProtocol.cs). The dashboard source is [ScheduleOne-SnitchWeb](https://github.com/DooDesch-Mods/ScheduleOne-SnitchWeb).
+
+Each entry of `panels[]` has `actions`, `toggles` and `sliders`:
 
 ```json
 {
@@ -65,19 +61,20 @@ Each entry of `panels[]` carries a `sliders` array beside `actions` and `toggles
 }
 ```
 
-`step` of `0` means continuous. **Treat the array as optional** - a game running an older Snitch omits it
-entirely, so read it as `panel.sliders ?? []` rather than assuming it is there.
+`step` `0` means continuous. Read the array as `panel.sliders ?? []`: an older Snitch omits it.
 
-Write a slider through the control endpoint, the same one that carries `action` and `toggle`:
+Write a slider through `/control`:
 
 ```
 POST /control?cmd=slider&id=Yoink:pull-force&value=12500
 ```
 
-`cmd`, `id` and `value` may also be sent as JSON fields in the body. The value goes over the wire as a plain
-number and the game clamps it to the slider's range and snaps it to its step, so a client may send anything
-without validating first. A missing `id` or an unparseable `value` comes back as
-`{"ok":false,"error":"..."}`; a good one as `{"ok":true,"cmd":"slider"}`. The write itself is applied on the
-game's main thread on its next frame, so read the value back from the following snapshot rather than assuming
-it took effect immediately.
+- `cmd`, `id` and `value` may also be JSON fields in the body.
+- Send any number. The game clamps it and snaps it to the step.
+- A good write returns `{"ok":true,"cmd":"slider"}`. A missing `id` or a bad `value` returns `{"ok":false,"error":"..."}`.
+- The game applies the write on its next frame. Read the result from the next snapshot.
 
+## Next
+
+- [Console commands](/mods/snitch/guides/console-commands/)
+- [Troubleshooting](/mods/snitch/guides/troubleshooting/)

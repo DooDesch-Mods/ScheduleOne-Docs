@@ -1,74 +1,57 @@
 ---
-title: "Installation"
-description: "You install Sideload because another mod needs it."
+title: Install Sideload
+description: Install Sideload for players, or add its one-file API to your own mod project.
 sidebar:
-  order: 1
+  order: 2
 ---
-## For players
 
-You install Sideload because another mod needs it. On its own it adds no gameplay, no menu and no phone app -
-it does nothing until a mod registers one, and every developer tool in it is off unless you switch it on.
+Install Sideload because another mod needs it. On its own it adds nothing to the game.
 
-### With a mod manager (recommended)
+**You need:** Schedule I (IL2CPP, current Steam build) and MelonLoader 0.7.3 or newer. See [Install](/install/).
 
-Install from Thunderstore with r2modman or Gale. MelonLoader and the support libraries are pulled in and placed
-correctly for you. Nothing else to do.
+## Steps for players
 
-### By hand
+1. With r2modman or Gale: install Sideload from Thunderstore. Dependencies are placed for you.
+2. By hand: install MelonLoader 0.7.3, then put `Sideload.dll` in `Schedule I/Mods/`.
 
-1. Install **MelonLoader 0.7.3** for Schedule I.
-2. Drop **`Sideload.dll`** into `Schedule I/Mods/`.
+`Sideload.dll` contains the HTML parser and the script engine. Nothing else is needed.
 
-That is the whole list. Since 1.11.0 the HTML parser, the script engine and its parser live inside
-`Sideload.dll`, so there is no second step to get wrong and nothing left behind when you remove the mod.
+If you upgrade from 1.10.0 or older, `AngleSharp.dll`, `Jint.dll` and `Esprima.dll` may remain in `UserLibs/` or `Mods/`. Sideload uses them if present. You can delete them.
 
-Upgrading from 1.10.0 or older? You will have `AngleSharp.dll`, `Jint.dll` and `Esprima.dll` in `UserLibs/` or
-next to the mod in `Mods/`. Sideload still prefers those if it finds them, so an existing install keeps working
-untouched. Delete them whenever you like.
+Sideload does not use S1API. It patches `HomeScreen.Start` itself.
 
-## Requirements
+## Steps for mod authors
 
-| Component | Version |
+1. Add `Sideload.cs` to your project as source. Do not reference Sideload.
+
+   ```xml
+   <Compile Include="path\to\Sideload.cs" Link="Sideload.Api.cs" />
+   ```
+
+2. Get the file from [`Sideload.Api/Sideload.cs`](https://github.com/DooDesch-Mods/ScheduleOne-Sideload/blob/main/Sideload.Api/Sideload.cs).
+
+The file has no references (no MelonLoader, Unity or IL2CPP interop). It finds the host by reflection. Your mod ships as one DLL and works with or without Sideload. Referencing `Sideload.Api.dll` behaves the same but adds a second assembly for players to install.
+
+Two optional npm packages (MIT):
+
+| Package | Use |
 |---|---|
-| Schedule I | IL2CPP, current Steam public build |
-| MelonLoader | 0.7.3 or newer |
-
-Sideload does **not** use S1API. It patches `HomeScreen.Start` itself, because S1API discovers phone apps by
-type and Sideload declares them at runtime.
-
-## For mod authors
-
-You do not install Sideload into your project. You compile in one file:
-
-```xml
-<Compile Include="path\to\Sideload.cs" Link="Sideload.Api.cs" />
-```
-
-`Sideload.Api/Sideload.cs` lives in the [Sideload repo](https://github.com/DooDesch-Mods/ScheduleOne-Sideload/blob/main/Sideload.Api/Sideload.cs).
-It has **zero references** - no MelonLoader, no Unity, no IL2CPP interop - and finds the running host by
-reflection. Referencing `Sideload.Api.dll` instead behaves identically, at the cost of a second assembly your
-users have to install.
-
-Either way your mod ships as one DLL and works whether or not Sideload is present.
-
-For the web half there are two npm packages, both MIT:
-
-| Package | What it is |
-|---|---|
-| [`@doodesch/create-sideload-app`](https://www.npmjs.com/package/@doodesch/create-sideload-app) | `npx @doodesch/create-sideload-app my-app` - the bundle, the C# mod, a Vite build and generated types |
-| [`@doodesch/sideload-vite`](https://www.npmjs.com/package/@doodesch/sideload-vite) | the Vite plugin on its own, for a project you already have |
-
-Neither is required. See **[Your First App](/mods/sideload/guides/your-first-app/)** for both routes.
+| [`@doodesch/create-sideload-app`](https://www.npmjs.com/package/@doodesch/create-sideload-app) | `npx @doodesch/create-sideload-app my-app` creates the bundle, C# mod, Vite build and types |
+| [`@doodesch/sideload-vite`](https://www.npmjs.com/package/@doodesch/sideload-vite) | The Vite plugin alone, for an existing project |
 
 ## Settings
 
-Settings live in `UserData/MelonPreferences.cfg` under `Sideload_01_Main`.
+Settings are in `UserData/MelonPreferences.cfg` under `Sideload_01_Main`.
 
-`AppKeys` is the only one meant for players, and it is **on**. It lets an app be reached by a key with your
-phone still in your pocket - press it and the app comes up ready to use. Only a key the app asked for is read,
-only where the game would let you take your phone out anyway, and never while you are typing, paused, or in a
-station, shop or the console. Turn it off and no app gets a key. See **[Keys and Typing](/mods/sideload/guides/keys-and-typing/)**.
+- `AppKeys` is on by default. It lets an app open from a key it asked for while the phone is in the pocket. Sideload ignores the key while you type, while paused, and in a station, shop or the console. Set it off and no app gets a key.
+- All other settings are developer tools and are off by default.
 
-Everything else there is a developer tool and is off by default; see
-**[Dev Loop and Testing](/mods/sideload/guides/dev-loop-and-testing/)** for what each one does.
+## Check it works
 
+Start the game. `MelonLoader/Latest.log` lists Sideload under the loaded mods.
+
+## Next
+
+- [Build your first app](/mods/sideload/guides/your-first-app/)
+- [Keys and typing](/mods/sideload/guides/keys-and-typing/)
+- [Dev loop and testing](/mods/sideload/guides/dev-loop-and-testing/)

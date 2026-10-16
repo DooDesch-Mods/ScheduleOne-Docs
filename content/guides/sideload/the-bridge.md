@@ -1,11 +1,13 @@
 ---
-title: "The Bridge"
-description: "Everything between your C# and your page crosses here."
+title: Call C# from the page and back
+description: Send strings between your page and your mod with s1.call, Emit, storage and fetch.
 sidebar:
   order: 3
 ---
-Everything between your C# and your page crosses here. Strings both ways, JSON for anything structured. No CLR
-object ever reaches the script and no script object ever reaches your mod.
+
+Move data between your page and your C# mod. Strings cross in both directions. Use JSON for structured data. No CLR object reaches the script and no script object reaches your mod.
+
+**You need:** a registered app. See [Build your first app](/mods/sideload/guides/your-first-app/).
 
 | Direction | C# | JS |
 |---|---|---|
@@ -13,64 +15,55 @@ object ever reaches the script and no script object ever reaches your mod.
 | mod tells the page | `app.Emit("name", payload)` | `s1.on('name', payload => ...)` |
 | page keeps its own state | - | `s1.storage.get/set/remove/clear` |
 | page reaches the network | `app.AllowHost("api.example.com")` | `fetch(url, init).then(...)` |
-| which way the phone is held | `app.Orientation("landscape", "portrait")` | `s1.orientation`, `s1.setOrientation(v)` |
-| the player pressed back | - | `document.addEventListener('back', ...)` |
+| phone orientation | `app.Orientation("landscape", "portrait")` | `s1.orientation`, `s1.setOrientation(v)` |
+| player pressed back | - | `document.addEventListener('back', ...)` |
 
-## s1.call is synchronous
+## Steps
 
-`s1.call(name, arg)` runs your C# handler **on the Unity main thread, in the same frame**, and returns its
-string. There is nothing to await. It may touch game state directly.
+### 1. Answer a call from the page
 
-```js
-const raw = s1.call('chat.threads');
-```
+1. Register handlers on the app. Handlers are scoped to your app id, so two mods can both own `list`.
 
-```csharp
-app.OnCall("chat.threads", _ => Json.Of(Chat.Threads));
-```
+   ```csharp
+   app.OnCall("items.list", _ => string.Join("\n", Items))
+      .OnCall("items.add", Add)
+      .OnCall("items.clear", _ => { Items.Clear(); return "ok"; });
+   ```
 
-Do not write `await s1.call(...)` and do not expect a Promise. You get the string back on the same line.
+2. Call it from the page. `s1.call` is synchronous. It runs your handler on the Unity main thread in the same frame, so it can touch game state. Do not `await` it.
 
-A call with no handler returns `""` and logs a warning; a handler that throws returns `""` and logs the
-exception. Both are silent from the page's side, so **treat an empty string as a real answer** and say so on
-screen rather than rendering nothing.
+   ```js
+   const raw = s1.call('items.list');
+   ```
 
-## Handlers are scoped to your app
+A call with no handler returns `""` and logs a warning. A handler that throws returns `""` and logs the exception. The page sees only the empty string, so show a message for it.
 
-Handlers are keyed by app id, so two mods may both own a call named `list` without colliding. Register them in
-one chain:
+### 2. Push an event to the page
 
-```csharp
-app.OnCall("items.list", _ => string.Join("\n", Items))
-   .OnCall("items.add", Add)
-   .OnCall("items.clear", _ => { Items.Clear(); return "ok"; });
-```
+1. Emit from `OnUpdate`, when something changed. Do not emit on a timer.
 
-## Emit pushes, it does not poll
+   ```csharp
+   public override void OnUpdate()
+   {
+       if (_revision == _pushed) return;
+       _pushed = _revision;
+       _app?.Emit("items.changed", Items.Count.ToString());
+   }
+   ```
 
-`app.Emit("name", payload)` reaches every `s1.on("name", fn)` in your page. Send an event when something
-**actually changed**, not on a timer - an idle app should cost one integer comparison per frame:
+2. Subscribe in the page.
 
-```csharp
-public override void OnUpdate()
-{
-    if (_revision == _pushed) return;
-    _pushed = _revision;
-    _app?.Emit("items.changed", Items.Count.ToString());
-}
-```
+   ```js
+   s1.on('items.changed', render);
+   ```
 
-The payload is deliberately thin. Send "something changed" and let the page ask for what it needs; pushing whole
-state means serialising everything on every keystroke-sized change.
+Keep the payload small. Send "something changed" and let the page ask for the data.
 
-**Never `Emit` from inside an `OnCall` handler.** That re-enters the script engine while it is still on the
-stack. Emit from your update loop.
+Never call `Emit` inside an `OnCall` handler. It re-enters the script engine while the engine is still on the stack.
 
-## JSON for anything structured
+### 3. Send structured data
 
-There is no JSON writer in `Sideload.Api` - it is a zero-reference file and stays that way. Write one, or copy
-the ~60-line one from the [reference app](https://github.com/DooDesch-Mods/ScheduleOne-WhatsDab/blob/main/Chat/Json.cs).
-The page has `JSON.parse` already.
+`Sideload.Api` has no JSON writer. Write one, or copy the 60-line [`Json.cs`](https://github.com/DooDesch-Mods/ScheduleOne-WhatsDab/blob/main/Chat/Json.cs) from WhatsDab. The page has `JSON.parse`.
 
 ```csharp
 app.OnCall("chat.threads", _ =>
@@ -83,19 +76,18 @@ app.OnCall("chat.threads", _ =>
 const threads = JSON.parse(s1.call('chat.threads') || '[]');
 ```
 
-For simple lists a newline-separated string is fine and cheaper. For inbound arguments, one separator character
-you forbid in the payload is often enough - but only if you **reject** a second one rather than folding it in:
+For a simple list, use a newline-separated string. For several inbound arguments, use one separator character. Reject a payload that contains a second one:
 
 ```csharp
 int split = raw.IndexOf('\n');
 if (split <= 0) return "error";
 string id = raw.Substring(0, split), text = raw.Substring(split + 1);
-if (text.IndexOf('\n') >= 0) return "error";   // the wire format cannot carry it
+if (text.IndexOf('\n') >= 0) return "error";
 ```
 
-## s1.storage
+### 4. Keep page state in s1.storage
 
-Strings keyed by name, one JSON file per app under `UserData/Sideload/<appId>.json`.
+`s1.storage` holds strings by name. It writes one JSON file per app at `UserData/Sideload/<appId>.json`.
 
 ```js
 const tab = s1.storage.get('tab', 'players');
@@ -103,17 +95,15 @@ s1.storage.set('tab', 'items');
 s1.storage.remove('tab');
 ```
 
-Deliberately **not** the game save. UI state - the last tab, a sort order, a draft - should survive a reload but
-must never travel with a save file or diverge between co-op peers. Anything that belongs to the world belongs in
-your mod, behind an `s1.call`.
+It is not the game save. Use it for UI state such as the last tab or a draft. Keep world data in your mod behind an `s1.call`.
 
-Do not store the phone orientation here. Sideload remembers the player's choice per app already - see
-**[Phone Integration](/mods/sideload/guides/phone-integration/)**.
+Do not store the phone orientation here. Sideload remembers it per app.
 
-## fetch, default deny
+`localStorage` and `sessionStorage` write to the same store.
 
-A page reaches no host until **your mod** names it. The page cannot add to that list, because the page is data a
-player can edit.
+### 5. Allow a network host and fetch
+
+A page reaches no host until your mod allows it.
 
 ```csharp
 Apps.Register("mystash", "MyMod.Assets.mystash")
@@ -121,13 +111,14 @@ Apps.Register("mystash", "MyMod.Assets.mystash")
     .AllowHost("*.cdn.example.com");
 ```
 
-`*.example.com` covers one label under it, not `example.com` itself. Ports are ignored. The scheme must be
-https unless the host is `127.0.0.1` or `localhost`. Every redirect hop is rechecked, there is a 10 s timeout, a
-4 MB response cap and a limit of 8 requests in flight. A blocked request rejects with the exact `AllowHost` call
-that is missing.
+- `*.example.com` covers one label under it, not `example.com` itself.
+- Ports are ignored.
+- The scheme must be https, except for `127.0.0.1` and `localhost`.
+- Every redirect hop is checked again.
+- Limits: 10 s timeout, 4 MB response, 8 requests in flight.
+- A blocked request rejects with the exact `AllowHost` call that is missing.
 
-**Never `await` a fetch.** Jint's `await` blocks the very thread that would deliver the answer, so the game
-freezes hard and only Task Manager gets you out. Use `.then()` / `.catch()`:
+Never `await` a fetch. It blocks the thread that delivers the answer and freezes the game. Use `.then()` and `.catch()`:
 
 ```js
 fetch('https://api.example.com/status')
@@ -138,19 +129,16 @@ fetch('https://api.example.com/status')
 
 ## What a page cannot reach
 
-The page is sandboxed to this list. There is no `navigator`, no file access, no clipboard, and no timers beyond
-the four standard ones plus `requestAnimationFrame`. `window` exists as an alias for the global object, and
-`localStorage` and `sessionStorage` write into the same per-app store as `s1.storage` - neither reaches the
-machine. If your app needs something else, the answer is almost always "put it behind an `s1.call`" - your
-**mod** is ordinary C# with the whole game in reach.
+There is no `navigator`, no file access and no clipboard. Timers are the four standard ones plus `requestAnimationFrame`. `window` is an alias for the global object. For anything else, put it behind an `s1.call`. Your mod is ordinary C# with the whole game in reach.
 
-The exceptions, which no `s1.call` can fix, are in **[Phone Integration](/mods/sideload/guides/phone-integration/)** under what the
-phone does not give a page.
+For limits that `s1.call` cannot fix, see [Phone integration](/mods/sideload/guides/phone-integration/).
 
-## Reaching the same app from outside the game
+## Check it works
 
-There is a second, internal seam on the bridge for a server putting the same bundle on a phone or a browser: the
-app list, the bundle files, `s1.css`, runtime images, an `s1.call` with no page behind it, and a tap on emit,
-badge and notify. It is not part of `Sideload.Api` and it is not stable. See
-**[Companion Seam](/mods/sideload/guides/companion-seam/)** before you build on it.
+The page shows the string your handler returned. When an event is emitted, the `s1.on` callback runs. Failures appear in `MelonLoader/Latest.log`.
 
+## Next
+
+- [Phone integration](/mods/sideload/guides/phone-integration/)
+- [Companion seam](/mods/sideload/guides/companion-seam/)
+- [API reference](/mods/sideload/api/)

@@ -1,13 +1,10 @@
 ---
-title: "The Beam shim (`TightBeam.cs`)"
-description: "Copy this single file into your mod project (namespace `TightBeam.Api`)."
+title: "The shim file"
+description: "Copy this single C# file into your mod project to call the TightBeam API."
 sidebar:
-  order: 54
+  order: 5
 ---
-Copy this single file into your mod project (namespace `TightBeam.Api`). It is Unity-free, has no
-dependencies, and every call is a no-op when TightBeam is not installed - so you can ship it
-unconditionally. See the [Modder API](/mods/tightbeam/guides/modder-api/) for how to use it. (Or reference `TightBeam.Api.dll`
-instead of copying.)
+Copy `TightBeam.cs` (namespace `TightBeam.Api`) into your project. Usage is in [Control the flashlight](/mods/tightbeam/guides/modder-api/).
 
 ```csharp
 using System;

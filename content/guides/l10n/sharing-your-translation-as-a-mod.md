@@ -1,84 +1,62 @@
 ---
-title: "Sharing your translation as a mod"
-description: "Finished a translation you're proud of?"
+title: "Share your translation as a mod"
+description: "Publish your translation JSON as its own Thunderstore or Nexus package."
 sidebar:
-  order: 2
+  order: 3
 ---
-Finished a translation you're proud of? You can publish it as its own mod on
-Thunderstore (and Nexus), so others just install "RVRepairVan French" with their mod
-manager and are done. A translation mod contains **no code** - it is only your JSON
-file in the right folder.
+Publish your translation as a package that players install with their mod manager. The package has no code, only your JSON file.
 
-Requires the translated mod to be built on ScheduleOne-L10n v1.1.0 or newer
-(RVRepairVan 2.5.0+).
+**You need:** a finished `<code>.json` (see [Translate a DooDesch mod](/mods/l10n/guides/translating-a-doodesch-mod/)). Needs ScheduleOne-L10n v1.1.0+ in the translated mod (RVRepairVan 2.5.0+).
 
-## How it works
+## Steps
 
-Mods look for translations in three places; later sources win per line:
+1. Create this folder layout. One package can translate several mods: add more folders under `Mods/Localization/`.
 
-1. the translations built into the mod itself,
-2. installed translation mods: `Mods/Localization/<ModName>/<code>.json`  <- yours
-3. the player's own file in `UserData/DooDesch/Localization/<ModName>/<code>.json`
+   ```
+   RVRepairVan_French/
+   ├── manifest.json
+   ├── icon.png           (256x256, required by Thunderstore)
+   ├── README.md          (what you translate, and into which language)
+   └── Mods/
+       └── Localization/
+           └── RVRepairVan/
+               └── fr.json
+   ```
 
-So your package simply ships the file at position 2. Players who dislike single lines
-of your translation can still override them with their own file - nobody gets locked in.
+2. Write `manifest.json`. List the translated mod in `dependencies`, so mod managers install it with your package.
 
-## Package layout
+   ```json
+   {
+     "name": "RVRepairVan_French",
+     "version_number": "1.0.0",
+     "website_url": "https://github.com/you/your-repo",
+     "description": "French translation for RVRepairVan.",
+     "dependencies": [
+       "DooDesch-RVRepairVan-2.5.0"
+     ]
+   }
+   ```
 
-Write your translation as described in [Translating a DooDesch mod](/mods/l10n/guides/translating-a-doodesch-mod/),
-then put it into this structure:
+3. Zip `manifest.json`, `icon.png`, `README.md` and `Mods/` at the top level of the zip.
 
-```
-RVRepairVan_French/
-├── manifest.json      (Thunderstore metadata, see below)
-├── icon.png           (256x256 - required by Thunderstore)
-├── README.md          (what your package translates, and to which language)
-└── Mods/
-    └── Localization/
-        └── RVRepairVan/
-            └── fr.json
-```
+4. Upload the zip to the Schedule I community on Thunderstore. r2modman and Gale copy `Mods/` into the profile.
 
-One package may translate several mods at once - just add more folders under
-`Mods/Localization/` (e.g. `RVRepairVan/fr.json` and `SideHustle/fr.json`).
+5. For Nexus, upload the same zip. Manual users extract it into the game folder, so `Mods/` merges with the existing one.
 
-`manifest.json` example:
+Name the package `<ModName>_<Language>`, for example `RVRepairVan_French`.
 
-```json
-{
-  "name": "RVRepairVan_French",
-  "version_number": "1.0.0",
-  "website_url": "https://github.com/you/your-repo",
-  "description": "French translation for RVRepairVan.",
-  "dependencies": [
-    "DooDesch-RVRepairVan-2.5.0"
-  ]
-}
-```
+## Check it works
 
-Put the mod you are translating into `dependencies` so mod managers install it
-alongside your translation and show the relationship on the package page.
+Before you publish, put `Mods/Localization/<ModName>/<code>.json` into your own game folder and restart. Set `Language` under `[DooDesch]` in `UserData/MelonPreferences.cfg` to your code to force it. The mod shows your lines. A `[L10n]` warning in the MelonLoader console means a JSON error, and it names the file.
 
-## Publishing
+## Load order
 
-- **Thunderstore**: zip the contents (manifest.json, icon.png, README.md and the
-  `Mods/` folder at the top level of the zip) and upload it to the Schedule I
-  community. Mod managers (r2modman / Gale) copy the `Mods/` folder into the profile
-  automatically.
-- **Nexus**: upload the same zip; manual users extract it into their game folder so
-  the `Mods/` folder merges with the existing one.
-- Name suggestion: `<ModName>_<Language>`, e.g. `RVRepairVan_French` - easy to find,
-  easy to relate.
+The mod reads three sources. Later sources win per line:
 
-## Testing before you publish
+1. the translation built into the mod
+2. translation mods: `Mods/Localization/<ModName>/<code>.json` (your package)
+3. the player's file: `UserData/DooDesch/Localization/<ModName>/<code>.json`
 
-Drop your `Mods/Localization/<ModName>/<code>.json` into your own game folder,
-restart, and check the mod shows your lines (set `Language` under `[DooDesch]` in
-`UserData/MelonPreferences.cfg` to your language code to force it). Watch the
-MelonLoader console for `[L10n]` warnings - they mean the JSON has a syntax error and
-names the file.
+## Next
 
-And if you'd rather have the translation shipped inside the mod itself: send it to me
-via [support.doodesch.de](https://support.doodesch.de/l10n) - full translations are very
-welcome and get credited.
-
+- To get your translation shipped inside the mod, send it via [support.doodesch.de](https://support.doodesch.de/l10n). Accepted translations are credited.

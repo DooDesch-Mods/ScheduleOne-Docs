@@ -16,6 +16,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync, cpSync, renameSync } from 'node:fs';
 import { dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import matter from 'gray-matter';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ORG = 'DooDesch-Mods';
@@ -46,10 +47,17 @@ const EXAMPLE_TOPIC = 'example';
 // An API surface is found by convention. The map is only for repos that do not follow one.
 const API_OVERRIDES = {};
 
+// Public API types that live outside the conventional folder. Added when the file exists at the ref being read.
+// SideHustle hands `MultiplayerInfo` to every gamemode through `LaunchContext.Multiplayer`, so a reference
+// without it cannot answer how a gamemode reads its host settings.
+const API_EXTRA = {
+  'ScheduleOne-SideHustle': ['Multiplayer/MultiplayerInfo.cs'],
+};
+
 // Where the reference lives inside a repo. Checked in order; the first pattern that matches wins.
 const API_PATTERNS = [
   /^[^/]+\.Api\/[^/]+\.cs$/,   // Snitch.Api/Snitch.cs
-  /^Api\/API\.cs$/,            // SideHustle
+  /^Api\/[^/]+\.cs$/,          // SideHustle: API.cs plus the descriptor, context and settings types
   /^API\.cs$/,                 // Personnel, Inkorporated
 ];
 
@@ -261,13 +269,19 @@ function consumeBlock(mod, ref) {
   const file = mod.api[0];
   const link = `${mod.html_url}/blob/${ref}/${file}`;
   const name = basename(file);
-  const lines = ['## Consume this API', ''];
+  const lines = ['## Use this API', ''];
+  const optional = [
+    'Mark it optional, so your mod still loads without it:',
+    '',
+    '```csharp',
+    `[assembly: MelonOptionalDependencies("${mod.name}")]`,
+    '```',
+    '',
+  ];
 
   if (mod.consumption === 'host-dll') {
     lines.push(
-      `${mod.name} exposes its API from its own assembly - there is no separate API package and nothing to`,
-      `copy. Reference \`${mod.name}.dll\` from your installed copy of the mod and mark it optional, or your`,
-      'mod will fail to load for anyone who does not have it.',
+      `Reference \`${mod.name}.dll\` from your Mods folder:`,
       '',
       '```xml',
       `<Reference Include="${mod.name}">`,
@@ -276,43 +290,30 @@ function consumeBlock(mod, ref) {
       '</Reference>',
       '```',
       '',
-      '```csharp',
-      `[assembly: MelonOptionalDependencies("${mod.name}")]`,
-      '```',
-      '',
-      `Because you are calling the mod directly, guard your calls: when ${mod.name} is absent the type is not`,
-      'there either. Keep the calls behind a check that runs only once you know it loaded.',
+      ...optional,
+      `Without ${mod.name} its types are missing too. Call it only after you know it loaded.`,
       '',
     );
   } else {
+    // No release publishes the `<Mod>.Api` project as a DLL, so the copied file is the only route worth naming.
     lines.push(
-      `The whole API is one file. Copy [\`${name}\`](${link}) into your project - that is the supported way,`,
-      'and it means there is no extra assembly to ship and no version to keep in step.',
+      `Copy [\`${name}\`](${link}) into your project. That one file is the whole API.`,
       '',
       '```xml',
       `<Compile Include="path\\to\\${name}" />`,
       '```',
       '',
-      '```csharp',
-      `[assembly: MelonOptionalDependencies("${mod.name}")]`,
-      '```',
-      '',
-      `Every call is a no-op that returns a default when ${mod.name} is not installed, and binds by itself when`,
-      'it is, so you can ship this unconditionally. Registrations made before the host loads are replayed once',
-      'it does.',
+      ...optional,
+      `Without ${mod.name} every call does nothing and returns a default. Calls made before ${mod.name} loads run once it does.`,
       '',
     );
-    if (mod.consumption === 'standalone-source') {
-      lines.push(
-        `There is also a \`${mod.name}.Api\` project in the repository if you would rather reference an assembly`,
-        'than compile the file. No release publishes that DLL, so you would be building it yourself.',
-        '',
-      );
-    }
   }
 
+  if (mod.start) {
+    lines.push(`First steps: [${mod.start.title}](${mod.start.link}).`, '');
+  }
   if (mod.example) {
-    lines.push(`A worked example lives in [${basename(mod.example)}](${mod.example}).`, '');
+    lines.push(`Example project: [${basename(mod.example)}](${mod.example}).`, '');
   }
   return lines.join('\n');
 }
@@ -328,11 +329,8 @@ function changesPage(mod, history) {
     '  order: 90',
     '---',
     '',
-    `Derived by comparing the public API surface across all ${history.versions.length} releases that carry ` +
-    'one. A member listed under a version is callable from that version on.',
-    '',
-    'A signature change still compiles for a caller that rebuilds against the new version, and still breaks ' +
-    'one that ships against the old one.',
+    'A member listed under a version is callable from that version on. Check "Removed" and "Signature changed" ' +
+    'before you raise the version you require: a mod built against the old signature breaks on the new one.',
     '',
   ];
 
@@ -383,25 +381,64 @@ function findApiSources(repoName, paths) {
   const usable = paths.filter((p) => !/(^|\/)(obj|bin)\//.test(p));
   for (const pattern of API_PATTERNS) {
     const hit = usable.filter((p) => pattern.test(p));
-    if (hit.length) return hit;
+    if (hit.length) return [...hit, ...(API_EXTRA[repoName] ?? []).filter((p) => usable.includes(p))];
   }
   return [];
 }
 
 // ---------------------------------------------------------------------------------------------------------------
 
-/** Turns a repo README into a docs page: no duplicate title, no build badges, no repo-relative links. */
-function transformReadme(md, repo, ref) {
+// README sections the info box or /install/ already covers. They still hold mod-specific facts (an extra DLL
+// for UserLibs, "every player needs it"), so they are folded away instead of dropped.
+const FOLD_SECTIONS = /^(requirements?|install(ation)?|manual install(ation)?|credits|compatibility)\b/i;
+// Sections with nothing a reader of this site acts on. The repo link in the info box still leads to them.
+const DROP_SECTIONS = /^(licen[cs]e)\b/i;
+
+/** A line of nothing but badge images, linked or not: shields.io, MLVScan, the Polyfill index. */
+const isBadgeRow = (line) => {
+  const t = line.trim();
+  if (!t || !/!\[/.test(t)) return false;
+  const rest = t.replace(/\[?!\[[^\]]*\]\([^)]*\)\]?(\([^)]*\))?/g, '').trim();
+  return rest === '' && /(shields\.io|badge)/i.test(t);
+};
+
+/**
+ * Turns a repo README into a docs page: no duplicate title, no badges, no support line the info box repeats,
+ * the install and credits sections folded, and no repo-relative links.
+ */
+function transformReadme(md, repo, ref, slug) {
   const lines = md.replace(/\r\n/g, '\n').split('\n');
   const out = [];
   let droppedTitle = false;
+  let section = null;   // 'fold' | 'drop' | null for the current `##` section
+  let inFence = false;
+
+  const closeFold = () => { if (section === 'fold') out.push('', '</details>', ''); };
 
   for (const line of lines) {
-    if (!droppedTitle && /^#\s+/.test(line)) { droppedTitle = true; continue; }
-    if (/^\s*(!\[[^\]]*\]\(https:\/\/img\.shields\.io[^)]*\)\s*)+$/.test(line)) continue;  // badge row
-    if (/^\*\*\[.+\]\(.+\).*·/.test(line)) continue;                                       // link row
+    if (/^\s*```/.test(line)) inFence = !inFence;
+    if (!inFence && /^##\s+/.test(line)) {
+      closeFold();
+      const heading = line.replace(/^##\s+/, '').trim();
+      if (DROP_SECTIONS.test(heading)) { section = 'drop'; continue; }
+      if (FOLD_SECTIONS.test(heading)) {
+        section = 'fold';
+        out.push(`<details><summary>${heading}</summary>`, '');
+        continue;
+      }
+      section = null;
+    }
+    if (section === 'drop') continue;
+    if (!inFence) {
+      if (!droppedTitle && /^#\s+/.test(line)) { droppedTitle = true; continue; }
+      if (isBadgeRow(line)) continue;
+      if (/^\*\*\[.+\]\(.+\).*·/.test(line)) continue;                          // link row
+      if (/Need help or found a bug\?/.test(line)) continue;                      // the info box has Help
+      if (new RegExp(`docs\\.doodesch\\.de/mods/${slug}/?\\)`).test(line) && /Documentation/.test(line)) continue;
+    }
     out.push(line);
   }
+  closeFold();
 
   return absolutize(out.join('\n').replace(/^\n+/, ''), repo, ref);
 }
@@ -435,6 +472,7 @@ function infoBlock(mod) {
   if (mod.thunderstore) links.push(`[Thunderstore](${mod.thunderstore})`);
   rows.push(`| Download | ${links.join(' · ')} |`);
   if (mod.dependencies?.length) rows.push(`| Requires | ${mod.dependencies.join(', ')} |`);
+  if (mod.start) rows.push(`| Start here | [${mod.start.title}](${mod.start.link}) |`);
   if (mod.api.length) rows.push(`| API | [Reference](/mods/${mod.slug}/api/) |`);
   // The box is where a reader looks for somewhere to go. A header icon is easy to miss when you are
   // already stuck on this page.
@@ -450,6 +488,32 @@ function readableDependency(id) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+
+/**
+ * The hand-written guides of one mod, sorted the way the sidebar shows them. A guide with `sidebar.order: 1` is
+ * the mod's "Start here" page; a second one would leave two pages claiming that slot, so it fails the build.
+ */
+function readGuides(slug) {
+  const guideDir = join(GUIDES, slug);
+  if (!existsSync(guideDir)) return [];
+  const guides = readdirSync(guideDir).filter((f) => f.endsWith('.md')).map((file) => {
+    const where = `content/guides/${slug}/${file}`;
+    const raw = readFileSync(join(guideDir, file), 'utf8');
+    const { data } = matter(raw);
+    if (!data.title) throw new Error(`${where} has no title`);
+    // Search results and link previews show the description. The wiki import left "1." and list items there.
+    const description = String(data.description ?? '');
+    if (description.length < 20 || /^\s*([-*+]|\d+\.)(\s|$)/.test(description)) {
+      throw new Error(`${where}: description "${description}" is not a sentence. Write the result of the page in one sentence.`);
+    }
+    return { file, name: basename(file, '.md'), title: String(data.title), order: data.sidebar?.order ?? 50, raw };
+  });
+  const starts = guides.filter((g) => g.order === 1);
+  if (starts.length > 1) {
+    throw new Error(`content/guides/${slug}: ${starts.map((g) => g.file).join(', ')} all have sidebar.order 1. Only the "Start here" guide has it.`);
+  }
+  return guides.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+}
 
 function runApiDoc(sourceDir, outDir, historyPath) {
   const stdout = execFileSync(
@@ -498,6 +562,11 @@ function buildMod(repo, examples) {
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
 
+  // Guides are read before the overview: its info box and the API page link the "Start here" guide.
+  const guides = readGuides(slug);
+  const start = guides.find((g) => g.order === 1);
+  mod.start = start ? { title: start.title, link: `/mods/${slug}/guides/${start.name}/` } : null;
+
   // Overview
   const readme = readFile(repo.full_name, ref, 'README.md', paths);
   if (!readme) throw new Error(`${repo.full_name} has no README.md, so there is nothing to show as an overview`);
@@ -513,23 +582,20 @@ function buildMod(repo, examples) {
     '---',
     '',
   ].join('\n');
-  writeFileSync(join(dir, 'index.md'), front + infoBlock(mod) + '\n' + transformReadme(readme, repo.full_name, ref) + '\n');
+  writeFileSync(join(dir, 'index.md'), front + infoBlock(mod) + '\n' + transformReadme(readme, repo.full_name, ref, slug) + '\n');
   mod.pages.push(`/mods/${slug}/`);
 
   // Guides, hand written and committed to this repo
-  const guideDir = join(GUIDES, slug);
-  const guides = existsSync(guideDir) ? readdirSync(guideDir).filter((f) => f.endsWith('.md')).sort() : [];
   if (guides.length) {
     mkdirSync(join(dir, 'guides'), { recursive: true });
     for (const g of guides) {
       // The copy under src/ is generated. A contributor clicking "Edit page" has to land on the real file
       // in content/guides, or their change is overwritten by the next build.
-      const text = readFileSync(join(guideDir, g), 'utf8')
-        .replace(/^---\r?\n/, `---\neditUrl: ${JSON.stringify(`${GUIDE_EDIT_BASE}/${slug}/${g}`)}\n`);
-      writeFileSync(join(dir, 'guides', g), text);
+      const text = g.raw.replace(/^---\r?\n/, `---\neditUrl: ${JSON.stringify(`${GUIDE_EDIT_BASE}/${slug}/${g.file}`)}\n`);
+      writeFileSync(join(dir, 'guides', g.file), text);
     }
   }
-  mod.guides = guides.map((g) => basename(g, '.md'));
+  mod.guides = guides.map(({ name, title, order }) => ({ name, title, order }));
 
   // API reference
   if (mod.api.length) {
@@ -567,18 +633,13 @@ function buildMod(repo, examples) {
       '---',
       `title: ${yaml(mod.name + ' API')}`,
       'editUrl: false',
-      `description: ${yaml(`The public API ${mod.name} exposes to other mods, generated from its source at ${ref}.`)}`,
+      `description: ${yaml(`Look up every public type and member of ${mod.name} ${mod.version}.`)}`,
       'sidebar:',
       '  order: 0',
       '---',
       '',
       consumeBlock(mod, ref),
-      '## About this reference',
-      '',
-      `Generated from [\`${mod.api.join('`, `')}\`](${mod.html_url}/blob/${ref}/${mod.api[0]}) at \`${ref}\`.`,
-      '',
-      `${mod.coverage.types} public types, ${mod.coverage.members} members, ` +
-      `${Math.round((100 * mod.coverage.documented) / mod.coverage.total)}% carry a documentation comment.`,
+      `Source: [\`${mod.api.join('`, `')}\`](${mod.html_url}/blob/${ref}/${mod.api[0]}) at \`${ref}\`.`,
       '',
     ].join('\n'));
   }
@@ -608,8 +669,10 @@ function buildMod(repo, examples) {
 
 function sidebarFor(mod) {
   const items = [{ label: 'Overview', link: `/mods/${mod.slug}/` }];
-  if (mod.guides.length) {
-    items.push({ label: 'Guides', items: [{ autogenerate: { directory: `mods/${mod.slug}/guides` } }] });
+  if (mod.start) items.push({ label: 'Start here', link: mod.start.link });
+  const rest = mod.guides.filter((g) => g.order !== 1);
+  if (rest.length) {
+    items.push({ label: 'Guides', items: rest.map((g) => ({ label: g.title, link: `/mods/${mod.slug}/guides/${g.name}/` })) });
   }
   if (mod.coverage) {
     items.push({ label: 'API reference', items: [{ autogenerate: { directory: `mods/${mod.slug}/api` } }] });
@@ -655,41 +718,46 @@ const catalogue = (list, empty) => (list.length
       `${m.released ? `\`${m.version}\`` : 'unreleased'} |`), ''].join('\n')
   : `${empty}\n`);
 
-const players = mods.filter((m) => !m.isExample && !m.coverage);
-const apis = mods.filter((m) => m.coverage);
+// A library is a mod other mods build on: it has an API reference, or a "Start here" guide for modders (L10n
+// ships no API file, but its first guide is how to adopt it).
+const isLibrary = (m) => !m.isExample && (m.coverage || m.start);
+const libraries = mods.filter(isLibrary);
+const players = mods.filter((m) => !m.isExample && !isLibrary(m));
 const samples = mods.filter((m) => m.isExample);
 
 writeFileSync(join(OUT, '..', 'mods.md'), [
   '---',
   'title: All mods',
-  'description: Every DooDesch Schedule I mod, what it does and which version is current, generated from the mod repositories themselves.',
+  'description: Every DooDesch Schedule I mod, what it does and its current version.',
   'editUrl: false',
   'sidebar:',
   '  order: 2',
   '---',
   '',
-  `${mods.length} mods, read from the GitHub org at their latest release. Nothing on this page is typed by hand.`,
+  'Pick a mod to see what it does and how to install it. [Install mods](/install/) covers MelonLoader.',
   '',
   '## Mods you install to play',
   '',
   catalogue(players, 'None.'),
-  '## Mods other mods build on',
+  '## Libraries for modders',
   '',
-  'These expose an API. Their reference is generated from their own source.',
+  'Other mods build on these. [What do you want to build?](/build/) shows which one fits your task.',
   '',
-  catalogue(apis, 'None.'),
-  '## Worked examples',
+  catalogue(libraries, 'None.'),
+  '## Example projects',
   '',
-  'Source to read rather than mods to install.',
+  'Source code to read. You do not install these.',
   '',
   catalogue(samples, 'None.'),
 ].join('\n'));
 
-// Mods that expose an API come first: this site exists for them.
+// Three groups, so a modder sees the libraries without scrolling past every player mod.
 const withApi = mods.filter((m) => m.coverage);
-const withoutApi = mods.filter((m) => !m.coverage);
-writeFileSync(join(GENERATED, 'sidebar.json'),
-  JSON.stringify([...withApi, ...withoutApi].map(sidebarFor), null, 2));
+writeFileSync(join(GENERATED, 'sidebar.json'), JSON.stringify({
+  libraries: libraries.map(sidebarFor),
+  mods: players.map(sidebarFor),
+  examples: samples.map(sidebarFor),
+}, null, 2));
 writeFileSync(join(GENERATED, 'ingest.json'),
   JSON.stringify({ generatedAt: new Date().toISOString(), org: ORG, topic: TOPIC, mods }, null, 2));
 

@@ -1,18 +1,19 @@
 ---
-title: "Pack Format"
-description: "A tattoo pack is a plain folder - no code."
+title: Pack format reference
+description: Look up the folder layout and manifest.json fields of an Inkorporated tattoo pack.
 sidebar:
-  order: 1
+  order: 2
 ---
-A tattoo pack is a plain folder - no code. It lives under:
+
+Look up the folder layout and `manifest.json` fields of a tattoo pack. A pack needs no code.
 
 ```
-…/Schedule I/UserData/Inkorporated/Packs/<YourPackName>/
+Schedule I/UserData/Inkorporated/Packs/<YourPackName>/
     manifest.json
     one or more .png files
 ```
 
-Inkorporated scans every folder in `Packs/` at startup and loads each one that has a `manifest.json`.
+Inkorporated scans every folder in `Packs/` at startup. It loads each folder that has a `manifest.json`.
 
 ## manifest.json
 
@@ -34,33 +35,26 @@ Inkorporated scans every folder in `Packs/` at startup and loads each one that h
 |-------|----------|-------|
 | `name` | no | Pack name, shown in the load log. |
 | `author` | no | Your name. |
-| `tattoos` | **yes** | Array of tattoo entries (below). |
+| `tattoos` | yes | Array of tattoo entries. |
 
-### Each tattoo entry
+### Tattoo entry
 
 | Field | Required | Notes |
 |-------|----------|-------|
-| `id` | **yes** | Unique within this pack. Lowercase, no spaces (used in the registered resource path). |
-| `name` | no | The label on the shop button. Falls back to `id`. |
-| `placement` | **yes** | `chest` \| `leftarm` \| `rightarm` \| `face` (case-insensitive; `left`/`right`/`left_arm`/`right_arm` also accepted). |
-| `file` | no | PNG filename in the pack folder. Defaults to `<id>.png`. |
-| `price` | no | Shop price. Omit or `0` for "Free". |
+| `id` | yes | Unique inside the pack. Lowercase, no spaces. It becomes part of the registered resource path. |
+| `name` | no | Label on the shop button. Default: `id`. |
+| `placement` | yes | `chest`, `leftarm`, `rightarm` or `face`. Case-insensitive. `left`, `right`, `left_arm` and `right_arm` also work. |
+| `file` | no | PNG file name in the pack folder. Default: `<id>.png`. |
+| `price` | no | Shop price. Omit it or use `0` for "Free". |
 
-Entries with an unknown `placement`, a missing `id`, or a missing PNG file are skipped with a warning in the
-MelonLoader log - check it if a tattoo does not show up.
+Inkorporated skips an entry with an unknown `placement`, a missing `id` or a missing PNG. It logs a warning for each.
 
-## The PNGs
+## PNG files
 
-Each `file` is a transparent PNG whose **opaque pixels sit at the UV region of that body part**. This is the
-one thing to get right - a tattoo is a full skin-texture layer, not a centered sticker. Read
-[Authoring Tattoos](/mods/inkorporated/guides/authoring-tattoos/) before drawing. Recommended canvas: 2048x2048 for body/arms, 512x512 for face (there
-is no hard size limit; you can do a full sleeve).
+Each `file` is a transparent PNG. Its opaque pixels sit at the UV region of the body part. Recommended canvas: 2048x2048 for chest and arms, 512x512 for face. There is no hard size limit. See [Author a tattoo PNG](/mods/inkorporated/guides/authoring-tattoos/).
 
-## Shipping a pack as a mod
+## Publish a pack
 
-A pack folder is already a complete mod. To distribute it on Thunderstore, zip the pack so it extracts to
-`UserData/Inkorporated/Packs/<YourPackName>/`, and declare **`DooDesch-Inkorporated`** as a dependency in
-your `manifest.json` (Thunderstore one) so installers pull the framework in. See the
-[example repo](https://github.com/DooDesch-Mods/ScheduleOne-InkorporatedExample)'s `pack/` folder for a
-ready template.
-
+1. Zip the pack so it extracts to `UserData/Inkorporated/Packs/<YourPackName>/`.
+2. Add `DooDesch-Inkorporated` as a dependency in the Thunderstore `manifest.json`.
+3. Use the `pack/` folder of the [example repo](https://github.com/DooDesch-Mods/ScheduleOne-InkorporatedExample) as a template.

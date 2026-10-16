@@ -1,61 +1,54 @@
 ---
-title: "Troubleshooting"
-description: "Always check the MelonLoader log first: `…/Schedule I/MelonLoader/Logs/` (newest file)."
+title: Troubleshoot Side Hustle
+description: Find the cause and fix when the hub, your gamemode row or a multiplayer join does not work.
 sidebar:
-  order: 4
+  order: 6
 ---
-Always check the MelonLoader log first: `…/Schedule I/MelonLoader/Logs/` (newest file). Side Hustle logs when
-it initializes, every gamemode that registers, and any problem with a warning.
 
-## The "Side Hustle" entry is missing from the main menu
+Find your symptom below. Check `MelonLoader/Latest.log` first.
 
-- **Mod not loaded?** The log should show `Side Hustle <version> ready - N gamemode(s) registered so far.` If
-  not, `SideHustle.dll` is not in `…/Schedule I/Mods/`, or MelonLoader/S1API are not installed.
-- **Hidden by the toggle.** Check `Enabled` in
-  `UserData/MelonPreferences.cfg` under `[SideHustle_01_Main]`. Return to the main menu after changing it.
-- **Menu not laid out yet.** The button is injected when the menu scene loads (with a short retry). Backing
-  out to the main menu again re-injects it.
+## The hub does not open in the main menu
 
-## My gamemode does not appear in the list
+- Side Hustle did not load. The log must show `Side Hustle <version> ready - N gamemode(s) registered so far.` If not, put `SideHustle.dll` in `Mods` and install MelonLoader and S1API.
+- The hub page needs Sideload. Without a Sideload that can mount surfaces, the classic hub shows instead.
+- `Enabled` is off. Set it to `true` under `[SideHustle_01_Main]` in `UserData/MelonPreferences.cfg`.
+- You pressed Esc on the hub. The plain menu keeps a "Side Hustle" entry that opens it again.
 
-- **Registered too late or not at all?** The log should show `Gamemode registered: '<Name>' (<id>).` Register
-  in your `OnInitializeMelon` - see [API Reference](/mods/sidehustle/api/).
-- **Side Hustle absent at load.** Add `[assembly: MelonOptionalDependencies("SideHustle")]` so the hub loads
-  first, and make sure `SideHustle.dll` is installed.
-- **Duplicate id.** Registering reuses the row for an existing `Id`; give each gamemode a unique `Id`.
+## My gamemode is not in the list
 
-## Selecting my gamemode does nothing
+- No `Gamemode registered: '<Name>' (<id>).` line in the log. Call `API.Register` in `OnInitializeMelon`.
+- The log shows a JIT or `TypeLoadException` error from your `MelonMod` class. Move every Side Hustle type out of that class. See [Add a gamemode](/mods/sidehustle/guides/getting-started/).
+- Two gamemodes use the same `Id`. The second one replaces the first. Give each gamemode its own `Id`.
 
-- Your launch callback is null or throws - `OnLaunchSingleplayer` for Singleplayer / Hybrid, or
-  `OnHostMultiplayer` / `OnJoinMultiplayer` for a Multiplayer gamemode. Check the log for an exception from
-  your callback.
-- A `Multiplayer`-only gamemode shows a Host / Join choice instead of launching directly; pick Host or Join.
+## Clicking Host, Join or Solo does nothing
+
+- The callback for that button is null. Solo needs `OnLaunchSingleplayer`. Host and Join need `OnHostMultiplayer` and `OnJoinMultiplayer`.
+- Your callback throws. The exception is in the log.
 
 ## The menu does not come back after my gamemode
 
-Call `ctx.ReturnToHub()` from your gamemode when it finishes (e.g. on a Back button). If your overlay covered
-the menu, make sure you also tear it down. `OnExitToHub` is invoked when Side Hustle initiates the teardown.
+Call `ctx.ReturnToHub()` when your mode ends. Remove your own overlay in `OnExitToHub`.
 
-## A non-friend can't join my public lobby (they drop after a few seconds)
+## My icon does not show
 
-Schedule I itself kicks any joining player who is not on the host's Steam friends list - the connection
-establishes, world data even starts loading, then the host drops them about ten seconds in (the host log shows
-`Player <name> is not friends with the host. Kicking from game.`). Side Hustle lifts that kick **while you host a
-Side Hustle gamemode**, so anyone can join your public or password-protected lobbies.
+- The resource name is wrong. The log lists the resource names your assembly has.
+- Name the resource `<AssemblyName>.hub-icon.png`. Set `LogicalName` in the csproj, or the build adds the folder to the name.
 
-- **Make sure the host is on Side Hustle 1.5.1 or newer.** The fix runs on the host, so only the host needs the
-  up-to-date build - a joiner can be on any version. When hosting, the log shows
-  `[mp] public-lobby access installed (non-friends may join a hosted lobby)`.
-- **It only applies to Side Hustle-hosted sessions.** Normal co-op started outside Side Hustle keeps the vanilla
-  friends-only behaviour.
+## A joiner times out while the world loads
 
-## The join times out at "LoadingData" / "join did not complete"
+- Builds differ. Everyone must run the same build of the gamemode. Side Hustle warns on the lobby card and in the log.
+- Mod sets differ. A mod that adds networked objects on one side only can stall the world sync. Host with "Required mods only" when the gamemode has a mod policy.
 
-- **Different builds.** Everyone in a session should run the same version of the gamemode. Side Hustle warns on the
-  browser card and in the log when your build differs from the host's - update to match.
-- **Different mod sets.** If the host runs mods that add networked objects the joiner doesn't have, the world sync
-  can stall. Host with **"Required mods only"** (if the gamemode declares a mod policy) so both sides run the same
-  curated set.
+## A joiner never gets my mod installed
 
-Still stuck? 🛟 [support.doodesch.de](https://support.doodesch.de/sidehustle).
+See [Make your mod sync to other players](/mods/sidehustle/guides/mod-sync/). The usual causes:
 
+- `downloadLink` is not set, or it is not an `https` link.
+- No GitHub release has a tag that matches the `MelonInfo` version.
+- The released DLL is not the same file the host runs. The hash check refuses it.
+
+## A non-friend drops out about ten seconds after joining
+
+The game kicks players who are not on the host's friends list. Side Hustle removes this kick while you host a Side Hustle lobby.
+On the host, the log shows `[mp] public-lobby access installed (non-friends may join a hosted lobby).`
+Co-op that you start outside Side Hustle keeps the friends-only rule.

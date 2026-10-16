@@ -1,51 +1,57 @@
 ---
-title: "Getting Started"
-description: "1."
+title: Make an NPC pack
+description: Write a manifest.json that adds your own NPC to Schedule I, with no code.
 sidebar:
-  order: 3
+  order: 1
 ---
-## Install
 
-1. Install **MelonLoader 0.7.3+** for Schedule I.
-2. Install **S1API** (ifBars/S1API_Forked) - its DLLs go in `Mods/` and `Plugins/` per its own instructions.
-3. Drop **`Personnel.dll`** into your `…/Schedule I/Mods/` folder.
-   (A Thunderstore mod manager like r2modman/Gale pulls MelonLoader + S1API in automatically.)
+Write a pack folder with one `manifest.json`. Personnel loads it and spawns your NPC in the world.
 
-## See the format instantly: the bundled example pack
+**You need:** Personnel and S1API installed. See [Install](/install/) for MelonLoader, S1API and the mod DLL.
 
-Personnel ships a small example pack, off by default. Turn it on to get two working NPC definitions plus a
-manifest template to copy:
+## Steps
 
-1. Set **`LoadExamplePack`** to `true` in
-   `…/Schedule I/UserData/MelonPreferences.cfg` under `[Personnel_01_Main]`.
-2. Restart the game.
-3. Look in `…/Schedule I/UserData/Personnel/Packs/Examples/` - a complete pack you can copy.
+1. Create the folder `Schedule I/UserData/Personnel/Packs/MyPack/`.
+2. Create `manifest.json` in that folder:
+   ```json
+   {
+     "name": "My Pack",
+     "author": "you",
+     "autoRegister": true,
+     "npcs": [
+       {
+         "id": "mypack_pale",
+         "name": "Pale",
+         "appearance": { "skinColor": "#8899AA", "hairPath": "Avatar/Hair/Spiky/Spiky" },
+         "spawn": { "x": -66.4, "y": -2.9, "z": 86.1, "rotationY": 145, "region": "Westville", "physical": true }
+       }
+     ]
+   }
+   ```
+3. Set the spawn point. Stand where the NPC must appear. Enable the console in Settings, press the backtick key, and run `personnel spawn`. Paste the result into `spawn`.
+4. Optional: add a `schedule`. Walk to each stop and run `personnel route 07:00`. Then run `personnel route show` and paste the steps into `"schedule": [ ... ]`.
+5. Restart the game. Pack changes need a restart.
 
-(Enabling it never overwrites an existing `Examples` folder, so your edits are safe.)
+To start from a working pack, set `LoadExamplePack` to `true` under `[Personnel_01_Main]` in `UserData/MelonPreferences.cfg`. Restart. Personnel writes `UserData/Personnel/Packs/Examples/`. It never overwrites an existing folder.
 
-## Check what loaded
+To design the look in a live editor, use [Personify](https://github.com/DooDesch-Mods/ScheduleOne-Personify). Export the pack and copy the `Personnel/Packs/<name>` folder into `UserData/Personnel/Packs/`.
 
-The MelonLoader console/log lists every pack with the ids it provides:
+## Check it works
+
+`MelonLoader/Latest.log` lists each pack with its ids:
 
 ```
-[Personnel] Pack 'Examples' (Personnel Examples): 2 NPC(s) [examples_pale, examples_ashen].
-[Personnel] Personnel 1.0.0 - 2 NPC def(s) from packs (2 total).
+[Personnel] Pack 'MyPack' (My Pack): 1 NPC(s) [mypack_pale].
 ```
 
-Those ids (`examples_pale`, ...) are what consumer mods reference - see [API Reference](/mods/personnel/api/).
+In game, the NPC stands at the spawn point.
 
-## Make your first NPC
+If you do not set `autoRegister`, Personnel only loads the definitions. A mod must then spawn them through the [API](/mods/personnel/api/).
 
-- **No code, comfortable:** use the in-game editor
-  [Personify](https://github.com/DooDesch-Mods/ScheduleOne-Personify) - design the NPC live on the menu
-  character, hit Export, and copy the exported `Personnel/Packs/<name>` folder into
-  `UserData/Personnel/Packs/`.
-- **No code, by hand:** copy the example pack and edit its `manifest.json` - see [Pack Format](/mods/personnel/guides/pack-format/).
-- **From a mod:** reference `Personnel.dll` and spawn definitions as real S1API NPCs - see [API Reference](/mods/personnel/api/).
+## Next
 
-## What Personnel does NOT do
-
-Personnel only provides the definitions (and realises their appearance). It does not place NPCs into the
-world by itself - that is the consumer mod's job (schedules, dialogue, spawn points). If you install only
-Personnel + a pack and nothing consumes it, nothing visibly changes in-game; the definitions just load.
-
+- [Pack format](/mods/personnel/guides/pack-format/)
+- [Custom PNG layers](/mods/personnel/guides/custom-png-layers/)
+- [Multiplayer and saves](/mods/personnel/guides/multiplayer-and-saves/)
+- [Troubleshooting](/mods/personnel/guides/troubleshooting/)
+- [API reference](/mods/personnel/api/)

@@ -1,45 +1,36 @@
 ---
-title: "Installation"
-description: "Install **Snitch** from Thunderstore via r2modman / the Thunderstore app."
+title: Install Snitch
+description: Install the Snitch profiler and start sampling from the Schedule I developer console.
 sidebar:
-  order: 1
+  order: 5
 ---
-## Requirements
 
-| Requirement | Notes |
-|---|---|
-| Schedule I | the IL2CPP build |
-| MelonLoader | 0.7.x |
-| S1API | `ifBars-S1API_Forked` |
+Install Snitch, then start sampling from the developer console.
 
-## Mod manager (recommended)
+**You need:** the IL2CPP build of Schedule I, MelonLoader 0.7.x and S1API (`ifBars-S1API_Forked`). See [Install](/install/) for MelonLoader.
 
-Install **Snitch** from Thunderstore via r2modman / the Thunderstore app. MelonLoader and S1API are pulled in
-as dependencies automatically.
+## Steps
 
-## Manual
+1. With a mod manager (r2modman or the Thunderstore app), install **Snitch**. MelonLoader and S1API come as dependencies.
+2. Without a manager, install MelonLoader and S1API, then put `Snitch.dll` in the game's `Mods/` folder.
+3. Optional: install [Hotline](https://github.com/DooDesch-Mods/ScheduleOne-Hotline) for the in-game windows. Without it, Snitch still runs, reports to the console and serves the web dashboard.
+4. Start the game and open the developer console.
+5. Run `snitch start`.
 
-1. Install [MelonLoader](https://melonwiki.xyz/) 0.7.x for Schedule I.
-2. Install S1API (`ifBars-S1API_Forked`).
-3. Drop `Snitch.dll` into the game's `Mods/` folder.
-4. Launch the game. You should see a `Snitch ... - profiler.` line in the MelonLoader console.
+## Check it works
 
-## First run
-
-Open the in-game developer console and type:
-
-```
-snitch start
-```
-
-That arms sampling. Press **F6** for the on-screen overlay, which the
-[Hotline](https://github.com/DooDesch-Mods/ScheduleOne-Hotline) framework draws - install it too if you want
-the in-game windows; without it Snitch still runs, reports to the console and serves the web dashboard. See [Console Commands](/mods/snitch/guides/console-commands/) for the rest, or
-open the [Web Dashboard](/mods/snitch/guides/web-dashboard/) at [snitch.doodesch.de](https://snitch.doodesch.de).
+- The MelonLoader console shows `Snitch v... - profiler.` at startup.
+- `snitch status` prints a one-line summary.
+- With Hotline installed, **F6** opens the overlay.
 
 ## Settings
 
-Settings live in `UserData/MelonPreferences.cfg` under `Snitch_01_Main` (or the in-game Mod Manager UI):
-master switch, multiplayer behaviour, auto-start, HUD, provider poll rate, and the local data-server port
-(`6140` by default, loopback only). The profiler is idle until you `snitch start`.
+Settings are in `UserData/MelonPreferences.cfg` under `Snitch_01_Main`, or in the in-game Mod Manager UI.
 
+They cover the master switch, multiplayer behavior, auto-start, HUD, provider poll rate and the local data server. The server port is `6140` and listens on loopback only.
+
+## Next
+
+- [Console commands](/mods/snitch/guides/console-commands/)
+- [Open the web dashboard](/mods/snitch/guides/web-dashboard/)
+- [Troubleshooting](/mods/snitch/guides/troubleshooting/)

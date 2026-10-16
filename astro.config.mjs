@@ -12,7 +12,8 @@ const BASE = process.env.DOCS_BASE ?? '/';
 // The per-mod tree is written by scripts/ingest.mjs before the build. An empty file is a real state
 // (nothing ingested yet), a missing one means the build ran without the ingest step.
 const SIDEBAR = './src/generated/sidebar.json';
-const mods = existsSync(SIDEBAR) ? JSON.parse(readFileSync(SIDEBAR, 'utf8')) : [];
+const generated = existsSync(SIDEBAR) ? JSON.parse(readFileSync(SIDEBAR, 'utf8')) : {};
+const { libraries = [], mods = [], examples = [] } = generated;
 
 export default defineConfig({
   site: SITE,
@@ -65,11 +66,25 @@ export default defineConfig({
       customCss: ['./src/styles/docs.css'],
       sidebar: [
         { label: 'Start here', link: '/' },
-        { label: 'Install and troubleshoot', link: '/install/' },
-        { label: 'All mods', link: '/mods/' },
-        { label: 'Using a mod API', link: '/using-a-mod-api/' },
-        { label: 'Use with an agent', link: '/agents/' },
-        { label: 'Mods', items: mods },
+        {
+          label: 'Play',
+          items: [
+            { label: 'Install mods', link: '/install/' },
+            { label: 'Fix a broken install', link: '/fix-install/' },
+            { label: 'All mods', link: '/mods/' },
+          ],
+        },
+        {
+          label: 'Build a mod',
+          items: [
+            { label: 'What do you want to build?', link: '/build/' },
+            { label: "Call another mod's API", link: '/using-a-mod-api/' },
+            { label: 'Use with an AI agent', link: '/agents/' },
+          ],
+        },
+        { label: 'Libraries', items: libraries },
+        { label: 'Mods', collapsed: true, items: mods },
+        { label: 'Examples', collapsed: true, items: examples },
       ],
     }),
   ],
