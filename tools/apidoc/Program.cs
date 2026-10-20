@@ -510,7 +510,7 @@ sealed class Doc
                         for (var i = 0; i < parts.Length; i++)
                         {
                             if (i > 0) Flush();
-                            para.Append(parts[i].Replace('\n', ' '));
+                            para.Append(Html(parts[i].Replace('\n', ' ')));
                         }
                         break;
 
@@ -545,7 +545,7 @@ sealed class Doc
                     case XElement e when e.Name == "list":
                         Flush();
                         foreach (var item in e.Elements("item"))
-                            blocks.Add("- " + Regex.Replace(item.Value, @"\s+", " ").Trim());
+                            blocks.Add("- " + Html(Regex.Replace(item.Value, @"\s+", " ").Trim()));
                         break;
 
                     case XElement e:
@@ -559,6 +559,11 @@ sealed class Doc
         Flush();
         return string.Join("\n\n", blocks);
     }
+
+    // Parsing the doc comment decodes an escaped "<code>" back to a bare tag, and in a Markdown page a bare
+    // "<code>" opens an HTML element that swallows the rest of the page. Prose gets the entities back; code
+    // spans and code blocks keep the raw characters, since Markdown shows those literally.
+    static string Html(string text) => text.Replace("<", "&lt;").Replace(">", "&gt;");
 
     /// `T:Snitch.Api.Panel` and `Snitch.Api.Panel` both read better as `Panel`.
     static string Strip(string cref)
