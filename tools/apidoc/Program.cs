@@ -70,18 +70,34 @@ if (collisions.Count > 0)
 Directory.CreateDirectory(outDir);
 // The type a reader opens first is the one with the most surface, not the one that sorts first alphabetically.
 var ordered = types.OrderByDescending(t => t.Members.Count).ThenBy(t => t.Name).ToList();
+var known = types.ToDictionary(t => t.Name);
 for (var i = 0; i < ordered.Count; i++)
 {
     var path = Path.Combine(outDir, Slug(ordered[i].Name) + ".md");
-    File.WriteAllText(path, Markdown.Page(ordered[i], i + 1, history), new UTF8Encoding(false));
+    File.WriteAllText(path, Markdown.Page(ordered[i], i + 1, history, new Refs(known, ordered[i])), new UTF8Encoding(false));
 }
 
 // The same "added in" the pages show, carried into the machine-readable surface: an agent asking whether a
 // method exists usually also needs to know from which version, and it will not read the prose to find out.
+// The JSON carries plain text: the cref markers resolve to their short names, without page links.
+var plain = new Refs(known, null);
+List<ApiParam> PlainParams(List<ApiParam> ps) => ps.Select(p => p with { Description = plain.Text(p.Description) }).ToList();
 var stamped = types.Select(t => t with
 {
     AddedIn = history.GetValueOrDefault(t.Key),
-    Members = t.Members.Select(m => m with { AddedIn = history.GetValueOrDefault(m.Key) }).ToList(),
+    Summary = plain.Text(t.Summary),
+    Remarks = plain.Text(t.Remarks),
+    Example = plain.Text(t.Example),
+    Members = t.Members.Select(m => m with
+    {
+        AddedIn = history.GetValueOrDefault(m.Key),
+        Summary = plain.Text(m.Summary),
+        Returns = plain.Text(m.Returns),
+        Value = plain.Text(m.Value),
+        Remarks = plain.Text(m.Remarks),
+        Example = plain.Text(m.Example),
+        Parameters = PlainParams(m.Parameters),
+    }).ToList(),
 }).ToList();
 File.WriteAllText(Path.Combine(outDir, "api.json"), JsonSerializer.Serialize(stamped, jsonOut), new UTF8Encoding(false));
 
@@ -158,13 +174,14 @@ static List<ApiType> MergePartials(List<ApiType> types)
         merged.Add(main with
         {
             Remarks = parts.Select(p => p.Remarks).FirstOrDefault(r => r is not null),
+            Example = parts.Select(p => p.Example).FirstOrDefault(r => r is not null),
             Members = parts.SelectMany(p => p.Members).ToList(),
         });
     }
     return merged;
 }
 
-static string Slug(string name) => Regex.Replace(name, "[^A-Za-z0-9]+", "-").Trim('-').ToLowerInvariant();
+static string Slug(string name) => Refs.PageSlug(name);
 
 record ScanEntry(string Version, List<string> Files);
 
@@ -190,6 +207,8 @@ record ApiType(
     /// The release this first appeared in, when a history was supplied. Serialized so a consumer of api.json
     /// can answer "may I call this on the version I require" without reading a page.
     public string? AddedIn { get; init; }
+
+    public string? Example { get; init; }
 }
 
 record ApiMember(
@@ -209,6 +228,13 @@ record ApiMember(
         : $"{Owner}.{Name}";
 
     public string? AddedIn { get; init; }
+
+    /// `<value>`: what a field or property holds - the allowed values, the unit, a sample.
+    public string? Value { get; init; }
+
+    public string? Remarks { get; init; }
+
+    public string? Example { get; init; }
 }
 
 record ApiParam(string Name, string? Description);
@@ -256,7 +282,10 @@ static class Extract
                 Signature: Sig.Type(decl),
                 Summary: doc?.Block("summary"),
                 Remarks: doc?.Block("remarks"),
-                Members: Members(decl, file, includeInternal).ToList());
+                Members: Members(decl, file, includeInternal).ToList())
+            {
+                Example = doc?.Block("example"),
+            };
         }
     }
 
@@ -272,7 +301,12 @@ static class Extract
             {
                 var d = Doc.Of(m, file);
                 yield return new ApiMember("field", m.Identifier.Text, Sig.EnumMember(m),
-                    d?.Block("summary"), null, new(), new(), new()) { Owner = owner };
+                    d?.Block("summary"), null, new(), new(), new())
+                {
+                    Owner = owner,
+                    Remarks = d?.Block("remarks"),
+                    Example = d?.Block("example"),
+                };
             }
             yield break;
         }
@@ -299,7 +333,13 @@ static class Extract
                 foreach (var v in field.Declaration.Variables)
                 {
                     yield return new ApiMember(fieldKind, v.Identifier.Text, Sig.Field(field, v),
-                        doc?.Block("summary"), null, new(), new(), new()) { Owner = owner };
+                        doc?.Block("summary"), null, new(), new(), new())
+                    {
+                        Owner = owner,
+                        Value = doc?.Block("value"),
+                        Remarks = doc?.Block("remarks"),
+                        Example = doc?.Block("example"),
+                    };
                 }
                 continue;
             }
@@ -338,7 +378,12 @@ static class Extract
                                      || t.IsKind(SyntaxKind.InKeyword) || t.IsKind(SyntaxKind.ParamsKeyword))
                             .Select(t => t.Text + " ")),
                         p.Type?.ToString() ?? "?")).ToList() ?? new())
-            { Owner = owner };
+            {
+                Owner = owner,
+                Value = doc?.Block("value"),
+                Remarks = doc?.Block("remarks"),
+                Example = doc?.Block("example"),
+            };
         }
     }
 
@@ -406,8 +451,10 @@ static class Sig
     /// rendering it as one entry named after the first drops the other two from the reference entirely.
     public static string Field(BaseFieldDeclarationSyntax f, VariableDeclaratorSyntax v)
     {
-        var isConst = f.Modifiers.Any(SyntaxKind.ConstKeyword);
-        var name = isConst && v.Initializer is not null ? v.ToString() : v.Identifier.Text;
+        // The initializer is the default a reader gets without setting the field, which is half of knowing what
+        // goes in. A long one (a lambda, a nested object) would bury the name, so it is left out past a few words.
+        var init = v.Initializer?.Value.ToString();
+        var name = init is not null && Clean(init).Length <= 48 ? Clean(v.ToString()) : v.Identifier.Text;
         var evt = f is EventFieldDeclarationSyntax ? "event " : "";
         return Clean(Mods(f.Modifiers) + evt + f.Declaration.Type + " " + name);
     }
@@ -530,8 +577,12 @@ sealed class Doc
                         break;
 
                     case XElement e when e.Name == "see" || e.Name == "seealso":
-                        var target = e.Attribute("cref")?.Value ?? e.Attribute("langword")?.Value ?? e.Value;
-                        para.Append('`').Append(Strip(target)).Append('`');
+                        // A cref keeps its full dotted name behind a marker; Refs shortens it and links it once
+                        // every type of the mod is known.
+                        if (e.Attribute("cref")?.Value is { } cref)
+                            para.Append('`').Append(Refs.Cref).Append(Refs.Unprefix(cref)).Append('`');
+                        else
+                            para.Append('`').Append(e.Attribute("langword")?.Value ?? e.Value.Trim()).Append('`');
                         break;
 
                     case XElement e when e.Name == "paramref" || e.Name == "typeparamref":
@@ -591,10 +642,10 @@ sealed class Doc
 
 static class Markdown
 {
-    public static string Page(ApiType type, int order, IReadOnlyDictionary<string, string> history)
+    public static string Page(ApiType type, int order, IReadOnlyDictionary<string, string> history, Refs refs)
     {
         var sb = new StringBuilder();
-        var lead = FirstSentence(type.Summary);
+        var lead = FirstSentence(refs.Plain(type.Summary));
 
         // The oldest version in the history is where everything the mod started with lands. Stamping
         // "Added in 1.0.0" on all of it says nothing; the interesting mark is what arrived later.
@@ -611,42 +662,47 @@ static class Markdown
 
         sb.Append("```csharp\n").Append(type.Signature).Append("\n```\n\n");
         if (type.Namespace.Length > 0) sb.Append($"Namespace `{type.Namespace}`\n\n");
+        sb.Append(refs.TypesLine(type.Signature, "Based on"));
         sb.Append(Added(type.Key));
-        if (type.Summary is not null) sb.Append(type.Summary).Append("\n\n");
-        if (type.Remarks is not null) sb.Append(type.Remarks).Append("\n\n");
-
-        // Overloads share a name. Left alone they produce two identical headings and two identical anchors,
-        // so the table of contents offers the reader a choice between the same link twice.
-        var overloaded = type.Members.GroupBy(m => m.Name).Where(g => g.Count() > 1)
-            .Select(g => g.Key).ToHashSet();
+        if (type.Summary is not null) sb.Append(refs.Text(type.Summary)).Append("\n\n");
+        if (type.Remarks is not null) sb.Append(refs.Text(type.Remarks)).Append("\n\n");
+        if (type.Example is not null) sb.Append("**Example**\n\n").Append(refs.Text(type.Example)).Append("\n\n");
 
         foreach (var group in type.Members.GroupBy(m => m.Kind).OrderBy(g => Order(g.Key)))
         {
             sb.Append("## ").Append(Heading(group.Key, group.Count())).Append("\n\n");
             foreach (var m in group)
             {
-                var heading = overloaded.Contains(m.Name)
-                    ? $"{m.Name}({string.Join(", ", m.ParameterTypes.Select(ShortType))})"
-                    : m.Name;
-                sb.Append("### ").Append(heading).Append("\n\n");
+                sb.Append("### ").Append(MemberHeading(type, m)).Append("\n\n");
                 sb.Append("```csharp\n").Append(m.Signature).Append("\n```\n\n");
+                sb.Append(refs.TypesLine(m.Signature, m.Kind is "field" or "property" or "event" ? "Type" : "Types"));
                 sb.Append(Added(m.Key));
-                if (m.Summary is not null) sb.Append(m.Summary).Append("\n\n");
+                if (m.Summary is not null) sb.Append(refs.Text(m.Summary)).Append("\n\n");
+                if (m.Value is not null) sb.Append("**Value** ").Append(refs.Text(m.Value)).Append("\n\n");
+                if (m.Remarks is not null) sb.Append(refs.Text(m.Remarks)).Append("\n\n");
 
                 if (m.Parameters.Count > 0)
                 {
                     sb.Append("| Parameter | |\n|---|---|\n");
                     foreach (var p in m.Parameters)
-                        sb.Append($"| `{p.Name}` | {Cell(p.Description)} |\n");
+                        sb.Append($"| `{p.Name}` | {Cell(refs.Text(p.Description))} |\n");
                     sb.Append('\n');
                 }
-                if (m.Returns is not null) sb.Append("**Returns** ").Append(Inline(m.Returns)).Append("\n\n");
+                if (m.Returns is not null) sb.Append("**Returns** ").Append(Inline(refs.Text(m.Returns))).Append("\n\n");
                 foreach (var x in m.Exceptions)
-                    sb.Append($"**Throws** `{x.Name}` {Inline(x.Description)}\n\n");
+                    sb.Append($"**Throws** `{x.Name}` {Inline(refs.Text(x.Description))}\n\n");
+                if (m.Example is not null) sb.Append("**Example**\n\n").Append(refs.Text(m.Example)).Append("\n\n");
             }
         }
         return sb.ToString().TrimEnd() + "\n";
     }
+
+    /// Overloads share a name. Left alone they produce two identical headings and two identical anchors,
+    /// so the table of contents offers the reader a choice between the same link twice.
+    public static string MemberHeading(ApiType type, ApiMember m) =>
+        type.Members.Count(o => o.Name == m.Name) > 1
+            ? $"{m.Name}({string.Join(", ", m.ParameterTypes.Select(ShortType))})"
+            : m.Name;
 
     /// Sorts 1.10.0 after 1.9.0, which a string comparison does not.
     public static (int, int, int) Rank(string version)
@@ -695,4 +751,95 @@ static class Markdown
 
     static string Inline(string? s) =>
         s is null ? "" : Regex.Replace(s.Replace("\n\n", " "), @"\s+", " ").Trim();
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+
+/// A reference page that names `SeatProfile` and gives no way to open it leaves the reader guessing what goes
+/// in. Every code span that names a type or member of this mod becomes a link to its page and heading; names
+/// from the game or another library stay plain, since there is no page to send the reader to.
+sealed class Refs
+{
+    /// Marks a code span that came from a cref. A cref carries the full dotted name, which this class shortens
+    /// to the part a reader needs; a <c> span is shown exactly as written.
+    public const char Cref = '\u0001';
+
+    readonly IReadOnlyDictionary<string, ApiType> _known;
+    readonly ApiType? _page;
+
+    /// `page` null renders plain text: the cref markers resolve, nothing becomes a link.
+    public Refs(IReadOnlyDictionary<string, ApiType> known, ApiType? page)
+    {
+        _known = known;
+        _page = page;
+    }
+
+    public static string PageSlug(string name) =>
+        Regex.Replace(name, "[^A-Za-z0-9]+", "-").Trim('-').ToLowerInvariant();
+
+    /// `M:Chassis.Api.ChassisApi.Register(Chassis.Api.ChassisProfile)` -> `Chassis.Api.ChassisApi.Register`.
+    public static string Unprefix(string cref)
+    {
+        var s = cref.Length > 2 && cref[1] == ':' ? cref[2..] : cref;
+        var paren = s.IndexOf('(');
+        return paren < 0 ? s : s[..paren];
+    }
+
+    public string? Text(string? text)
+    {
+        if (text is null) return null;
+        // Fenced blocks show code literally, so only the prose between them is touched. Split with a capture
+        // group keeps the fences at the odd indices.
+        var parts = Regex.Split(text, @"(```[\s\S]*?```)");
+        for (var i = 0; i < parts.Length; i += 2)
+            parts[i] = Regex.Replace(parts[i], "`([^`\n]+)`", m => Span(m.Groups[1].Value));
+        return string.Concat(parts);
+    }
+
+    /// The same text without links, for places that take no Markdown link (the page description).
+    public string? Plain(string? text) => new Refs(_known, null).Text(text);
+
+    /// "Type: [`SeatProfile`](../seatprofile/)" under a signature that uses types of this mod.
+    public string TypesLine(string signature, string label)
+    {
+        if (_page is null) return "";
+        var hits = Regex.Matches(signature, @"\b[A-Za-z_]\w*\b").Select(m => m.Value)
+            .Where(n => n != _page.Name && _known.ContainsKey(n))
+            .Distinct().ToList();
+        if (hits.Count == 0) return "";
+        return label + ": " + string.Join(", ", hits.Select(n => Link(n, _known[n], null))) + "\n\n";
+    }
+
+    string Span(string s)
+    {
+        var cref = s.Length > 0 && s[0] == Cref;
+        if (cref) s = s[1..];
+        var segs = s.Split('.');
+
+        var at = Array.FindLastIndex(segs, k => _known.ContainsKey(k));
+        if (at >= 0)
+        {
+            var type = _known[segs[at]];
+            var member = at + 1 < segs.Length ? type.Members.FirstOrDefault(m => m.Name == segs[at + 1]) : null;
+            return Link(cref ? string.Join('.', segs[at..]) : s, type, member);
+        }
+        if (segs.Length == 1 && _page?.Members.FirstOrDefault(m => m.Name == s) is { } own)
+            return Link(s, _page, own);
+
+        // A cref into the game or the BCL: `T:Snitch.Api.Panel` reads better as `Panel`.
+        return "`" + (cref ? segs[^1] : s) + "`";
+    }
+
+    string Link(string shown, ApiType type, ApiMember? member)
+    {
+        if (_page is null || (type == _page && member is null)) return "`" + shown + "`";
+        var url = type == _page ? "" : $"../{PageSlug(type.Name)}/";
+        var anchor = member is null ? "" : "#" + Anchor(Markdown.MemberHeading(type, member));
+        return $"[`{shown}`]({url}{anchor})";
+    }
+
+    /// The heading id Starlight gives a heading (github-slugger): lower case, punctuation dropped, spaces to
+    /// hyphens. `Register(ChassisProfile, bool)` -> `registerchassisprofile-bool`.
+    static string Anchor(string heading) =>
+        Regex.Replace(heading.ToLowerInvariant(), @"[^\p{L}\p{N}\s_-]", "").Replace(' ', '-');
 }
