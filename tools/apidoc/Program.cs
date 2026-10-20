@@ -136,7 +136,32 @@ static List<ApiType> Parse(string[] files, bool includeInternal)
 {
     var types = new List<ApiType>();
     foreach (var file in files) types.AddRange(Extract.FromFile(file, includeInternal));
-    return types;
+    return MergePartials(types);
+}
+
+/// A partial type is one type spread over several files (Chassis: ChassisApi.cs, ChassisApi.Fit.cs, ...), so its
+/// parts become one page. Only parts that are all declared partial merge: two unrelated types sharing a name still
+/// reach the collision check and stop the run.
+static List<ApiType> MergePartials(List<ApiType> types)
+{
+    var merged = new List<ApiType>();
+    foreach (var group in types.GroupBy(t => (t.Namespace, t.Name)))
+    {
+        var parts = group.ToList();
+        if (parts.Count == 1 || !parts.All(p => Regex.IsMatch(p.Signature, @"\bpartial\b")))
+        {
+            merged.AddRange(parts);
+            continue;
+        }
+        // The summary lives on one part by convention; that part also gives the page its signature.
+        var main = parts.FirstOrDefault(p => p.Summary is not null) ?? parts[0];
+        merged.Add(main with
+        {
+            Remarks = parts.Select(p => p.Remarks).FirstOrDefault(r => r is not null),
+            Members = parts.SelectMany(p => p.Members).ToList(),
+        });
+    }
+    return merged;
 }
 
 static string Slug(string name) => Regex.Replace(name, "[^A-Za-z0-9]+", "-").Trim('-').ToLowerInvariant();
