@@ -47,6 +47,9 @@ Many commands act on the host only. They say so when a client runs them.
 | `chassis car put <code> <x> <y> <z> [yaw]` | Spawn a car at this pose and stand beside it (host). |
 | `chassis car bones` | Print head, hips, knees and feet of your avatar in the vehicle's space. |
 | `chassis car remove` | Despawn the vehicle you sit in, or the nearest one (host). |
+| `chassis car go [throttle] [steer] [s]` | Drive through the game's own control override, each value from -1 to 1. Sit in the driver seat first. |
+| `chassis car slide [km/h] [deg] [s]` | Hold the car at a speed, turned off its facing, to test tyre slip and drift smoke. |
+| `chassis car wheels` | Print drift state, smoke and smoke colour per wheel. |
 | `chassis car honk [flash]` | Sound the horn, as the G key does. |
 | `chassis car blink l\|r\|off` | Set the indicator, as the arrow keys do. |
 | `chassis car lock on\|off` | Lock or unlock the vehicle (owner only). |
@@ -55,16 +58,36 @@ Many commands act on the host only. They say so when a client runs them.
 | `chassis car rain on\|off\|auto` | Force rain for the wipers. |
 | `chassis car assign <code>\|off` | Give the vehicle another profile. |
 | `chassis car owners` | Print every owner record this peer knows. |
+| `chassis car owner <player code>` | Give the vehicle to another player (host). |
 | `chassis exit` | Leave the vehicle, as the interact key does. |
 | `chassis view [pitch]` | Switch first person on or off while seated, as the V key does. A pitch turns it on and looks down that far. |
 | `chassis drive <fwd> <steer> [s]` | Driver input for `s` seconds (default 3). |
-| `chassis cam <dist> <yaw> <height>` | Orbit camera around your vehicle, or the nearest wheelchair. `chassis cam off` ends it. |
+| `chassis cam <dist> <yaw> <height>` | Orbit camera around your vehicle, or the nearest seated body. `chassis cam off` ends it. |
 | `chassis lights [net id]` | Print the lamp meshes of a car and every renderer with its materials. |
 | `chassis crouch [on\|off]` | Crouch or stand, as the crouch key does. |
 | `chassis crouch keep\|fix` | `keep`: a body that gets in crouched stays crouched, as in vanilla. `fix`: it sits upright, the default. |
 | `chassis hints [format]` | Print the vehicle key hints. A format with `{0}` relabels the arrow keys. |
-| `chassis status` | Print seated bodies, swapped props, pushers, the view and the current vehicle. |
+| `chassis status` | Print seated bodies, pushers, the view, the key hints and the current vehicle. |
+| `chassis despawn car` | Remove the nearest car within 30 m. |
 | `chassis feet` | Print the ankle axes of every seated body. |
+
+### Tuning
+
+The `tune` commands act on the car you sit in, the nearest car within 15 m, or a car by net id: `chassis tune #<net id> ...`.
+
+| Command | What it does |
+|---|---|
+| `chassis tune` | Print the car's tuning keys and driving factors. |
+| `chassis tune help` | List the `tune` subcommands. |
+| `chassis tune parts [slot]` | List the parts that fit the car. |
+| `chassis tune part <id>` | Install a part. It replaces the part in that slot. |
+| `chassis tune remove <slot>` | Put the stock part back in that slot. |
+| `chassis tune set <key> <value>` | Set any key, for example `paint C81E1E,metallic`, `rims 202020,chrome`, `xenon 9FB8FF`, `neon 00FFAA,lr`, `tint 10121480`, `smoke FF2080` or `horn <sound>`. |
+| `chassis tune unset <key>` | Remove one key. |
+| `chassis tune clear` | Put everything back to stock. |
+| `chassis tune stats` | Print the stock and the current driving values. |
+| `chassis tune demo` | Register demo parts (wing, bumper, exhaust, rims) that fit this car's code. |
+| `chassis tune marco open\|<colour>\|close` | Open Marco's repaint menu for the car, pick and buy a colour through the menu's own buttons, or close it. |
 
 ### Interior
 
@@ -99,40 +122,7 @@ Many commands act on the host only. They say so when a client runs them.
 
 ### Wheelchairs
 
-| Command | What it does |
-|---|---|
-| `chassis chairs` | List every wheelchair in the scene with its position. |
-| `chassis sit [tp <i>]` | Sit on the nearest wheelchair prop, as the Sit prompt does. `tp` moves you to prop `i` first. |
-| `chassis push [off [net]\|fake]` | Push the nearest occupied wheelchair, or let go. `fake` pushes an empty one. |
-| `chassis pushin <fwd> <steer> [s]` | Pusher input for `s` seconds (default 3). |
-| `chassis move <yaw> [m]` | Turn the nearest wheelchair by `yaw`, then shift it `m` along its facing. |
-| `chassis wheels` | Print the physics state of the nearest wheelchair: body and every wheel collider. |
-| `chassis spawn` | Spawn a wheelchair 2 m ahead (host). |
-| `chassis despawn` | Remove every wheelchair vehicle. `chassis despawn car` removes the nearest car within 30 m instead. |
-| `chassis tree [i]` | Print the hierarchy of wheelchair prop `i`. |
-
-### Sit demo
-
-The `demo` commands put you in a wheelchair and tune the seated pose in the chair's space.
-
-| Command | What it does |
-|---|---|
-| `chassis demo [tp [n]]` | Sit in the nearest wheelchair. `tp` works at any distance, `n` is the index from `chassis chairs`. |
-| `chassis demo off` | Stand up again. |
-| `chassis demo state` | Print seat, grip and IK state. |
-| `chassis demo seat <x> <y> <z> [yaw]` | Set the avatar root in the chair's space. |
-| `chassis demo fit [gap]` | Put the hip joints `gap` metres above the seat top (default 0.09). |
-| `chassis demo foot <x> <y> <z> [rotW]` | Set the right foot in the chair's space. The left one is mirrored. |
-| `chassis demo footrot <x> <y> <z>` | Set the right foot rotation against the chair in degrees. |
-| `chassis demo knee\|elbow <x> <y> <z>` | Set a bend goal in the chair's space. The left one is mirrored. |
-| `chassis demo lean <x> <y> <z> [w]` | Set the spine reach point and its weight. |
-| `chassis demo grip <x> <y> <z> [rotW]` | Set the right-hand grip from the wheel centre. The left one is mirrored. |
-| `chassis demo scale <s>` | Scale the chair against the original. |
-| `chassis demo parts` | Print every chair mesh with centre and size. |
-| `chassis demo feet` | Print the solved ankles and toes in the chair's space. |
-| `chassis demo probe [frames]` | Print the range of root, ankle, player and chair over a number of frames, to find shake. |
-| `chassis demo mark <x> <y> <z> [size]` | Put a red sphere at a chair-space point and a blue one at its mirror. `mark bones [size]` marks the bones, `mark clear` removes the spheres. |
-| `chassis demo cam out [dist] [yaw] [height]` | Camera that looks at the chair from outside. `cam fp [pitch] [forward]` looks from the seat, `cam off` ends it. |
+The wheelchair commands moved to [Rollin](/mods/rollin/guides/console-commands/) as `rollin` commands.
 
 ### Test clients
 
