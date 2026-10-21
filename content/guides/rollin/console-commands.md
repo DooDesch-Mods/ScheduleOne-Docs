@@ -38,8 +38,13 @@ The `tune` commands act on the chair you sit in, or the nearest one.
 | `rollin tune show` | Print what the chair wears. |
 | `rollin parts [slot]` | List every Rollin part with its id. |
 | `rollin menu [open\|close\|up\|down\|left\|right]` | Use the T menu without keys. |
+| `rollin tune where` | Print the size and position of every part on the chair, in chair space. |
+| `rollin tune chair` | Print the shape of the chair itself: seat, backrest and frame. |
+| `rollin tune overlap` | List parts that cut into the chair, the rider or each other. |
+| `rollin tune nudge <slot> [<name> pos\|rot\|size <x> [<y> <z>]]` | List the pieces of a part, or move, turn or scale one piece live. |
+| `rollin meshes` | List the game models the parts are built from. |
 
-Slots: `spoiler`, `booster`, `exhaust`, `rims`, `hat`, `mascot`, `roof`, `lights`, `audio`, `cargo`, `decal`,
+Slots: `spoiler`, `booster`, `exhaust`, `rims`, `hat`, `mascot`, `roof`, `lights`, `audio`, `cargo`,
 `engine`, `brakes`, `suspension`, `tyres`, `steering` and `weight`.
 
 Examples:
