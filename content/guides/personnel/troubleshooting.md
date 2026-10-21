@@ -44,7 +44,7 @@ That player needs Personnel and the same pack. See [Multiplayer and saves](/mods
 
 ## The example pack does not appear
 
-Restart the game after you set `LoadExamplePack`. Personnel never overwrites an existing `Packs/Examples` folder. Delete the folder to get a fresh copy.
+Restart the game after you set `LoadExamplePack`. Personnel never overwrites a `Packs/Examples` manifest you edited. Delete the folder to get a fresh copy.
 
 ## Still stuck
 

@@ -23,7 +23,7 @@ Write a pack folder with one `manifest.json`. Personnel loads it and spawns your
          "id": "mypack_pale",
          "name": "Pale",
          "appearance": { "skinColor": "#8899AA", "hairPath": "Avatar/Hair/Spiky/Spiky" },
-         "spawn": { "x": -66.4, "y": -2.9, "z": 86.1, "rotationY": 145, "region": "Westville", "physical": true }
+         "spawn": { "x": -64.25, "y": 1.07, "z": 84.49, "rotationY": 325, "region": "Northtown", "physical": true }
        }
      ]
    }
@@ -32,7 +32,7 @@ Write a pack folder with one `manifest.json`. Personnel loads it and spawns your
 4. Optional: add a `schedule`. Walk to each stop and run `personnel route 07:00`. Then run `personnel route show` and paste the steps into `"schedule": [ ... ]`.
 5. Restart the game. Pack changes need a restart.
 
-To start from a working pack, set `LoadExamplePack` to `true` under `[Personnel_01_Main]` in `UserData/MelonPreferences.cfg`. Restart. Personnel writes `UserData/Personnel/Packs/Examples/`. It never overwrites an existing folder.
+To start from a working pack, set `LoadExamplePack` to `true` under `[Personnel_01_Main]` in `UserData/MelonPreferences.cfg`. Restart. Personnel writes `UserData/Personnel/Packs/Examples/`. An unedited older example pack is updated. An edited one is never touched.
 
 To design the look in a live editor, use [Personify](https://github.com/DooDesch-Mods/ScheduleOne-Personify). Export the pack and copy the `Personnel/Packs/<name>` folder into `UserData/Personnel/Packs/`.
 
