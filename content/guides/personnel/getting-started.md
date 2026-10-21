@@ -32,7 +32,7 @@ Write a pack folder with one `manifest.json`. Personnel loads it and spawns your
 4. Optional: add a `schedule`. Walk to each stop and run `personnel route 07:00`. Then run `personnel route show` and paste the steps into `"schedule": [ ... ]`.
 5. Restart the game. Pack changes need a restart.
 
-To start from a working pack, set `LoadExamplePack` to `true` under `[Personnel_01_Main]` in `UserData/MelonPreferences.cfg`. Restart. Personnel writes `UserData/Personnel/Packs/Examples/`. It never overwrites an existing folder.
+To start from a working pack, set `LoadExamplePack` to `true` under `[Personnel_01_Main]` in `UserData/MelonPreferences.cfg`. Restart. Personnel writes `UserData/Personnel/Packs/Examples/`. An unedited older example pack is updated. An edited one is never touched.
 
 To design the look in a live editor, use [Personify](https://github.com/DooDesch-Mods/ScheduleOne-Personify). Export the pack and copy the `Personnel/Packs/<name>` folder into `UserData/Personnel/Packs/`.
 
