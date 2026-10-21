@@ -43,9 +43,9 @@ Needs Personnel 2.0+ for `autoRegister`, `spawn`, `schedule` and economy roles.
       },
       "behavior": { "aggression": 0.2, "maxHealth": 100, "scale": 1.0 },
       "spawn": {
-        "x": -66.4, "y": -2.9, "z": 86.1,
-        "rotationY": 145.0,
-        "region": "Westville",
+        "x": -64.25, "y": 1.07, "z": 84.49,
+        "rotationY": 325.0,
+        "region": "Northtown",
         "physical": true
       },
       "contact": { "visible": true, "mapMarker": true },
@@ -70,9 +70,8 @@ Needs Personnel 2.0+ for `autoRegister`, `spawn`, `schedule` and economy roles.
       },
       "inventory": { "cash": { "min": 20, "max": 120 }, "items": [ "baggie" ], "clearEachNight": true },
       "schedule": [
-        { "type": "walkTo", "time": "07:30", "position": [-70.1, -2.9, 80.0] },
-        { "type": "stayInBuilding", "time": "09:00", "duration": 240, "building": "Thrifty Threads" },
-        { "type": "walkTo", "time": "14:00", "position": [-66.4, -2.9, 86.1] }
+        { "type": "stayInBuilding", "time": "09:00", "duration": 240, "building": "Motel Office" },
+        { "type": "walkTo", "time": "14:00", "position": [-64.25, 1.07, 84.49] }
       ],
       "extensions": { }
     }

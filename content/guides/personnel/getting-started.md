@@ -23,7 +23,7 @@ Write a pack folder with one `manifest.json`. Personnel loads it and spawns your
          "id": "mypack_pale",
          "name": "Pale",
          "appearance": { "skinColor": "#8899AA", "hairPath": "Avatar/Hair/Spiky/Spiky" },
-         "spawn": { "x": -66.4, "y": -2.9, "z": 86.1, "rotationY": 145, "region": "Westville", "physical": true }
+         "spawn": { "x": -64.25, "y": 1.07, "z": 84.49, "rotationY": 325, "region": "Northtown", "physical": true }
        }
      ]
    }
