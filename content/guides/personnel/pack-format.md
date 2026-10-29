@@ -13,7 +13,7 @@ Schedule I/UserData/Personnel/Packs/<PackName>/
 └── *.png              (optional custom layers, referenced by the manifest)
 ```
 
-Needs Personnel 2.0+ for `autoRegister`, `spawn`, `schedule` and economy roles.
+Needs Personnel 2.0+ for `autoRegister`, `spawn`, `schedule` and economy roles. Needs Personnel 2.3+ (`schemaVersion` 3) for `supplier`, `portrait` and `lines`.
 
 ## manifest.json
 
@@ -21,7 +21,7 @@ Needs Personnel 2.0+ for `autoRegister`, `spawn`, `schedule` and economy roles.
 {
   "name": "My Pack",
   "author": "you",
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "autoRegister": true,
   "npcs": [
     {
@@ -150,14 +150,60 @@ Vanilla `teleport <property|npc id>` moves you fast, for example `teleport rv` o
 
 Without Personnel 2.1: run `save` in the console, then read `Position` from `%USERPROFILE%\AppData\LocalLow\TVGS\Schedule I\Saves\<SteamID>\SaveGame_1\Players\Player_0\Player.json`.
 
-## Roles: customer and dealer
+## Roles: customer, dealer and supplier
 
-A `customer` or `dealer` block gives the NPC that economy role. If both exist, `dealer` wins. Personnel applies only the fields you set. The rest keep the game defaults.
+A `customer`, `dealer` or `supplier` block gives the NPC that economy role. If more than one exists, `dealer` wins, then `supplier`, then `customer`. Personnel applies only the fields you set. The rest keep the game defaults.
 
 - `customer`: `spending`, `ordersPerWeek`, `preferredOrderDay` (`Monday` to `Sunday`), `orderTime`, `standards` (`VeryLow`, `Low`, `Moderate`, `High`, `VeryHigh`), `allowDirectApproach`, `guaranteeFirstSample`, `mutualRelationRequirement`, `callPoliceChance`, `dependence`, `affinities`, `preferredProperties`.
 - `affinities` maps a drug type to a value from -1 to 1. Types: `marijuana`, `methamphetamine`, `cocaine`, `mdma`, `shrooms`, `heroin`.
 - `preferredProperties` takes property ids such as `energizing`.
 - `dealer`: `type` (`player` or `cartel`), `cut`, `signingFee`, `home` (building name), `completedDealsVariable`, `allowInsufficientQuality`, `allowExcessQuality`.
+- `supplier`: `items` (item ids such as `ogkushseed` or `cocaleaf`), `minOrderLimit`, `maxOrderLimit`, `recommendMessage` (text of the customer who recommends the supplier), `unlockHint` (text on the locked contact), `stashDeadDrop` (GUID of a vanilla dead drop for the cash stash; empty puts a stash next to the spawn).
+
+A supplier works like the vanilla ones: the player orders by phone, the goods wait at a dead drop, and the debt is paid into the stash. The price of an item is its game price. The debt limit grows from `minOrderLimit` to `maxOrderLimit` with the relationship. A supplier always stands in the world, so `spawn.physical: false` is ignored.
+
+```json
+"supplier": {
+  "items": ["ogkushseed", "sourdieselseed"],
+  "minOrderLimit": 50,
+  "maxOrderLimit": 500,
+  "recommendMessage": "Talk to Sully, he sells seeds.",
+  "unlockHint": "A customer can recommend him."
+}
+```
+
+## portrait
+
+`"portrait": "portrait.png"` sets the picture of the phone contact. Use a square PNG in the pack folder. Without it the game takes a picture of the NPC.
+
+## lines
+
+Own texts of the NPC. Every list holds variants; the game picks one at random. A text you leave out keeps the vanilla text of the NPC's role.
+
+```json
+"lines": {
+  "greeting": ["Sully's open for business.", "You again? Good."],
+  "phone": {
+    "deaddrop_ready": ["Sully here. Your stuff waits at <LOCATION>."],
+    "deaddrop_requested": [["Got it.", "Give me <TIME>."]]
+  },
+  "reactions": { "annoyed": ["Hey, watch it."] }
+}
+```
+
+- `greeting`: what the NPC says when you talk to it, at any time of day.
+- `phone`: texts by key. A variant is one message, or a list of messages sent in a row.
+- `reactions`: short world reactions by key: `annoyed`, `hurt`, `panic_start`, `noticed_pickpocket`.
+
+Phone keys and their placeholders:
+
+| Role | Keys |
+|------|------|
+| Customer | `contract_request`, `contract_accepted`, `contract_rejected`, `offer_expired`, `counteroffer_accepted`, `counteroffer_rejected` (`<PRODUCT>`, `<PRICE>`, `<QUALITY>`, `<LOCATION>`, `<WINDOW_START>`, `<WINDOW_END>`); `awaiting_deal`, `late_deal`, `deal_completed`, `customer_rejected_deal`, `offer_reject`, `post_deal_recommend` (`<NAME>`), `sample_sufficient`, `sample_insufficient` |
+| Dealer | `dealer_rob_defended`, `dealer_rob_partially_defended`, `dealer_rob_loss`, `inventory_depleted` |
+| Supplier | `deaddrop_requested` (`<TIME>`), `deaddrop_ready` (`<LOCATION>`), `supplier_request_repayment` (`<DEBT>`), `supplier_unlocked`, `supplier_meet_confirm` (`<LOCATION>`) |
+
+Any other vanilla key goes to the generic module. `"Module/key"` (for example `"Generic/first_contract_request"`) picks the module by name.
 
 ## contact and relationships
 
