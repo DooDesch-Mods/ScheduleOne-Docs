@@ -150,15 +150,16 @@ Vanilla `teleport <property|npc id>` moves you fast, for example `teleport rv` o
 
 Without Personnel 2.1: run `save` in the console, then read `Position` from `%USERPROFILE%\AppData\LocalLow\TVGS\Schedule I\Saves\<SteamID>\SaveGame_1\Players\Player_0\Player.json`.
 
-## Roles: customer, dealer and supplier
+## Roles: customer, dealer, supplier and police
 
-A `customer`, `dealer` or `supplier` block gives the NPC that economy role. If more than one exists, `dealer` wins, then `supplier`, then `customer`. Personnel applies only the fields you set. The rest keep the game defaults.
+A `customer`, `dealer` or `supplier` block gives the NPC that economy role, and a `police` block makes it an officer. If more than one exists, `dealer` wins, then `supplier`, then `police`, then `customer`. Personnel applies only the fields you set. The rest keep the game defaults.
 
 - `customer`: `spending`, `ordersPerWeek`, `preferredOrderDay` (`Monday` to `Sunday`), `orderTime`, `standards` (`VeryLow`, `Low`, `Moderate`, `High`, `VeryHigh`), `allowDirectApproach`, `guaranteeFirstSample`, `mutualRelationRequirement`, `callPoliceChance`, `dependence`, `affinities`, `preferredProperties`.
 - `affinities` maps a drug type to a value from -1 to 1. Types: `marijuana`, `methamphetamine`, `cocaine`, `mdma`, `shrooms`, `heroin`.
 - `preferredProperties` takes property ids such as `energizing`.
 - `dealer`: `type` (`player` or `cartel`), `cut`, `signingFee`, `home` (building name), `completedDealsVariable`, `allowInsufficientQuality`, `allowExcessQuality`.
 - `supplier`: `items` (item ids such as `ogkushseed` or `cocaleaf`), `minOrderLimit`, `maxOrderLimit`, `recommendMessage` (text of the customer who recommends the supplier), `unlockHint` (text on the locked contact), `stashDeadDrop` (GUID of a vanilla dead drop for the cash stash; empty puts a stash next to the spawn).
+- `police`: an empty object, `"police": {}`. The NPC becomes one more officer of the police station. The game assigns the duties, so `spawn` and `schedule` are ignored. A police belt is added when the look has none, because the game needs it during a pursuit. In the distance the officer shows the picture of a vanilla officer. Host and client need the same pack.
 
 A supplier works like the vanilla ones: the player orders by phone, the goods wait at a dead drop, and the debt is paid into the stash. The price of an item is its game price. The debt limit grows from `minOrderLimit` to `maxOrderLimit` with the relationship. A supplier always stands in the world, so `spawn.physical: false` is ignored.
 
