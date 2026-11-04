@@ -10,7 +10,7 @@ Install TightBeam and use your normal flashlight key.
 
 ## Steps
 
-1. With r2modman or Gale, install TightBeam from the Schedule I community. MelonLoader comes with it.
+1. Download TightBeam from [Nexus Mods](https://www.nexusmods.com/schedule1/mods/2255) and install it with Vortex. Or use r2modman or Gale, which also installs MelonLoader.
 2. Or install it by hand: put `TightBeam.dll` in the `Mods/` folder of Schedule I.
 3. Start the game and load a save.
 4. Switch your flashlight on.

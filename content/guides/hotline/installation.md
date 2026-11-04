@@ -11,7 +11,7 @@ Install Hotline and open the overlay with F6.
 
 ## Steps
 
-1. With a Thunderstore mod manager (r2modman or Gale), install **Hotline**. MelonLoader comes as a dependency.
+1. Download **Hotline** from [Nexus Mods](https://www.nexusmods.com/schedule1/mods/2239) and install it with Vortex. Or use a Thunderstore mod manager (r2modman or Gale), which also installs MelonLoader as a dependency.
 2. Without a manager, put `Hotline.dll` in your Schedule I `Mods/` folder.
 3. Start the game.
 

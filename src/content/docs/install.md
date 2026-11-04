@@ -7,14 +7,22 @@ sidebar:
 
 Install a mod and everything it needs. A mod manager does it in one click.
 
-## With a mod manager
+## With Nexus Mods
+
+1. Open the mod's page on [Nexus Mods](https://www.nexusmods.com/games/schedule1/mods) and download it with Vortex, or as a zip.
+2. Vortex installs it into Schedule I. For a zip, follow "By hand" below.
+3. Install the mods the page lists under "Requires" the same way.
+
+Each mod page links to its Nexus page.
+
+## With a Thunderstore mod manager
 
 1. Install [r2modman](https://thunderstore.io/c/schedule-i/p/ebkr/r2modman/) or [Gale](https://thunderstore.io/c/schedule-i/p/Kesomannen/GaleModManager/).
 2. Select Schedule I and create a profile.
 3. Search the mod and click Install. The manager also installs MelonLoader, S1API and every other dependency.
 4. Start the game from the manager.
 
-Each mod page links to its Thunderstore package.
+Each mod page also links to its Thunderstore package.
 
 ## By hand
 

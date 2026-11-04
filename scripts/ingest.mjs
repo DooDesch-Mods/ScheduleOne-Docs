@@ -44,6 +44,14 @@ const SKIP = new Set(['ScheduleOne-Docs']);
 // publish the same types twice, under the wrong mod, at whatever version the example was last updated to.
 const EXAMPLE_TOPIC = 'example';
 
+/** Nexus Mods page ids (nexusmods.com/schedule1/mods/<id>) by Thunderstore package name. A mod without an entry has no Nexus page. */
+const NEXUS_IDS = {
+  RVRepairVan: 280, Siesta: 2210, Inkorporated: 2214, Snitch: 2222, SideHustle: 2232, Inkubator: 2233,
+  Hotline: 2239, TightBeam: 2255, Personnel: 2275, Personify: 2276, PropHunt: 2283, Sideload: 2360,
+  WhatsDab: 2361, Yoink: 2377, Hash: 2408, Polyfill: 2452, Reflash: 2879, Yesla: 2880, Chassis: 2918,
+  Rollin: 2927, LooseEnds: 2948, MarcosBodyshop: 2987, NPC_Cards: 3015, MapExpansions: 3033, Based: 3034,
+};
+
 // An API surface is found by convention. The map is only for repos that do not follow one.
 const API_OVERRIDES = {};
 
@@ -469,7 +477,9 @@ function infoBlock(mod) {
     ? `| Latest release | \`${mod.version}\` |`
     : `| Version | No release yet, documented from \`${mod.ref}\` |`);
   const links = [`[GitHub](${mod.html_url})`];
-  if (mod.thunderstore) links.push(`[Thunderstore](${mod.thunderstore})`);
+  // Order: Nexus, Thunderstore, GitHub.
+  if (mod.thunderstore) links.unshift(`[Thunderstore](${mod.thunderstore})`);
+  if (mod.nexus) links.unshift(`[Nexus Mods](${mod.nexus})`);
   rows.push(`| Download | ${links.join(' · ')} |`);
   if (mod.dependencies?.length) rows.push(`| Requires | ${mod.dependencies.join(', ')} |`);
   if (mod.start) rows.push(`| Start here | [${mod.start.title}](${mod.start.link}) |`);
@@ -555,6 +565,7 @@ function buildMod(repo, examples) {
     const manifest = JSON.parse(manifestRaw);
     mod.dependencies = (manifest.dependencies ?? []).map(readableDependency);
     mod.thunderstore = `https://thunderstore.io/c/schedule-i/p/DooDesch/${manifest.name}/`;
+    if (NEXUS_IDS[manifest.name]) mod.nexus = `https://www.nexusmods.com/schedule1/mods/${NEXUS_IDS[manifest.name]}`;
     if (!mod.description) mod.description = manifest.description ?? '';
   }
 

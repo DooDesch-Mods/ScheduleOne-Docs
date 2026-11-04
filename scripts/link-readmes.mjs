@@ -3,7 +3,7 @@
 //   node scripts/link-readmes.mjs            show what would change
 //   node scripts/link-readmes.mjs --open     create the branches and pull requests
 //
-// A reader's journey starts on GitHub, Thunderstore or a search result - almost never on the docs homepage.
+// A reader's journey starts on GitHub, Nexus Mods, Thunderstore or a search result - almost never on the docs homepage.
 // Thirteen READMEs already link to their wiki, which is now a page of pointers; those links are rewritten
 // rather than duplicated. The rest get one line under the support line.
 //
