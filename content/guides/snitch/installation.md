@@ -11,9 +11,9 @@ Install Snitch, then start sampling from the developer console.
 
 ## Steps
 
-1. With a mod manager (r2modman or the Thunderstore app), install **Snitch**. MelonLoader and S1API come as dependencies.
+1. Download **Snitch** from [Nexus Mods](https://www.nexusmods.com/schedule1/mods/2222) and install it with Vortex. Or use a mod manager (r2modman or the Thunderstore app), which installs MelonLoader and S1API as dependencies.
 2. Without a manager, install MelonLoader and S1API, then put `Snitch.dll` in the game's `Mods/` folder.
-3. Optional: install [Hotline](https://github.com/DooDesch-Mods/ScheduleOne-Hotline) for the in-game windows. Without it, Snitch still runs, reports to the console and serves the web dashboard.
+3. Optional: install [Hotline](https://www.nexusmods.com/schedule1/mods/2239) for the in-game windows. Without it, Snitch still runs, reports to the console and serves the web dashboard.
 4. Start the game and open the developer console.
 5. Run `snitch start`.
 

@@ -11,7 +11,7 @@ Install Sideload because another mod needs it. On its own it adds nothing to the
 
 ## Steps for players
 
-1. With r2modman or Gale: install Sideload from Thunderstore. Dependencies are placed for you.
+1. Download Sideload from [Nexus Mods](https://www.nexusmods.com/schedule1/mods/2360) and install it with Vortex. Or use r2modman or Gale to install it from Thunderstore. Dependencies are placed for you.
 2. By hand: install MelonLoader 0.7.3, then put `Sideload.dll` in `Schedule I/Mods/`.
 
 `Sideload.dll` contains the HTML parser and the script engine. Nothing else is needed.
