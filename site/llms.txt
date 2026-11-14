@@ -1,0 +1,13 @@
+# DooDesch Schedule I Mod Docs
+
+> Documentation for the DooDesch Schedule I mods: what each mod does, how to install it, and the full API reference for the ones other mods build on.
+
+## Documentation Sets
+
+- [Abridged documentation](https://docs.doodesch.de/llms-small.txt): a compact version of the documentation for DooDesch Schedule I Mod Docs, with non-essential content removed
+- [Complete documentation](https://docs.doodesch.de/llms-full.txt): the full documentation for DooDesch Schedule I Mod Docs
+
+## Notes
+
+- The complete documentation includes all content from the official documentation
+- The content is automatically generated from the same source as the official documentation
