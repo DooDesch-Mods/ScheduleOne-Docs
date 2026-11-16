@@ -1,0 +1,122 @@
+---
+/**
+ * One construction stage of a base: its day image, what it costs, how many nights it takes and what it adds.
+ * The stage's name is a Markdown heading above the component, so it shows in the page's table of contents.
+ */
+interface Props {
+  image: string;
+  alt: string;
+  /** Price in dollars. */
+  cost: number;
+  nights: number;
+  /** Short lines, one per thing the stage adds. */
+  adds: string[];
+  width?: number;
+  height?: number;
+}
+
+const { image, alt, cost, nights, adds, width = 1600, height = 900 } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const src = image.startsWith('/') ? base + image : image;
+const money = `$${cost.toLocaleString('en-US')}`;
+---
+
+<section class="base-stage not-content">
+  <img src={src} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
+  <div class="bs-body">
+    <dl class="bs-facts">
+      <div>
+        <dt>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect width="20" height="12" x="2" y="6" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg>
+          Cost
+        </dt>
+        <dd>{money}</dd>
+      </div>
+      <div>
+        <dt>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+          Build time
+        </dt>
+        <dd>{nights === 1 ? '1 night' : `${nights} nights`}</dd>
+      </div>
+    </dl>
+    <ul class="bs-adds">
+      {adds.map((line) => (
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+          {line}
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .base-stage {
+    margin: 0.75rem 0 2rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--sl-color-gray-5);
+    overflow: hidden;
+    background: var(--sl-color-gray-7, var(--sl-color-black));
+  }
+  .base-stage img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+  .bs-body {
+    padding: 1rem 1.25rem 1.25rem;
+  }
+  .bs-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+    margin: 0 0 0.75rem;
+  }
+  .bs-facts div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .bs-facts dt {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+  }
+  .bs-facts dd {
+    margin: 0;
+    font-size: var(--sl-text-lg);
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+  .bs-adds {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.3rem;
+    color: var(--sl-color-gray-2);
+  }
+  .bs-adds li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .base-stage svg {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .bs-adds svg {
+    color: var(--sl-color-accent);
+  }
+</style>

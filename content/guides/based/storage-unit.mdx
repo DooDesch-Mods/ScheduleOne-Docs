@@ -1,0 +1,106 @@
+---
+title: Storage Unit
+description: Where the Storage Unit is, how it looks with the upper floor built out, and what each stage costs and adds.
+sidebar:
+  order: 11
+---
+
+import MapSpot from '@components/MapSpot.astro';
+import FloorPlan from '@components/FloorPlan.astro';
+import BeforeAfter from '@components/BeforeAfter.astro';
+import BaseStage from '@components/BaseStage.astro';
+
+Ray sells the plan for $1,000 once you own the Storage Unit. Each stage needs the one before it.
+
+| Total cost | Build time | Employees | Loading bays |
+|---|---|---|---|
+| $12,500 | 8 nights | 3 → 8 | 1 → 2 |
+
+## Where it is
+
+<MapSpot x={[-9.3, 3.8]} z={[93.5, 114.5]} label="Storage Unit" alt="Map of Northtown with the Stash & Dash warehouse marked" />
+
+<FloorPlan
+  title="Ground floor"
+  x={[-13, 3.8]}
+  z={[93.5, 114.5]}
+  text={0.7}
+  areas={[
+    { x: [-9.3, 3.8], z: [93.5, 114.5], kind: 'building' },
+    { x: [-8.8, -1.8], z: [94, 103.8], kind: 'building', label: 'Hall', dz: -3.6 },
+    { x: [-8.8, -3.8], z: [103.8, 114], kind: 'yours', label: 'Storage Unit' },
+    { x: [-1.9, 3.2], z: [103.8, 114], kind: 'other', label: 'Unit 2' },
+    { x: [-1.8, 3.2], z: [95.5, 101.5], kind: 'other', label: 'Unit 3' },
+    { x: [-8.7, -5.7], z: [98.11, 102.61], kind: 'bay', label: 'Bay 1' },
+    { x: [-5.45, -2.45], z: [98.11, 102.61], kind: 'bay', label: 'Bay 2' },
+    { x: [-10.59, -9.09], z: [99.17, 104.6], kind: 'new', label: 'Stair', dx: -1.7 },
+  ]}
+/>
+
+<FloorPlan
+  title="Upper floor"
+  x={[-13, 3.8]}
+  z={[93.5, 114.5]}
+  text={0.7}
+  areas={[
+    { x: [-9.3, 3.8], z: [93.5, 114.5], kind: 'building' },
+    { x: [-8.8, -2.2], z: [94, 103.8], kind: 'building', label: 'Open to the hall' },
+    { x: [-8.75, -2.2], z: [103.8, 113.8], kind: 'new', label: 'Loft' },
+    { x: [-2.2, 3.2], z: [103.8, 113.8], kind: 'new', label: 'East units' },
+    { x: [-2.2, 3.2], z: [94, 103.8], kind: 'new', label: 'South units' },
+    { x: [-10.59, -9.09], z: [99.17, 104.6], kind: 'new', label: 'Stair', dx: -1.7 },
+    { x: [-10.65, -9.01], z: [104.6, 106.3], kind: 'new' },
+  ]}
+  openings={[{ x: [-9.1, -8.75], z: [104.85, 106.1] }]}
+/>
+
+## Before and after
+
+<BeforeAfter
+  before="/img/based/storage-unit/before.webp"
+  after="/img/based/storage-unit/after.webp"
+  beforeAlt="The west wall of the Stash & Dash warehouse without a stair"
+  afterAlt="The west wall with the steel stair up to the loft door"
+/>
+
+## Stages
+
+### Loft above the unit
+
+<BaseStage
+  image="/img/based/storage-unit/loft.webp"
+  alt="The loft above the Storage Unit, empty and lit"
+  cost={4000}
+  nights={3}
+  adds={['2 more employees, 5 in total', 'Outside steel stair up the west wall', 'About 65 m² of new floor']}
+/>
+
+### East units
+
+<BaseStage
+  image="/img/based/storage-unit/east.webp"
+  alt="The upper floor over the east units, opened into one room"
+  cost={4000}
+  nights={2}
+  adds={['2 more employees, 7 in total', 'About 54 m² of new floor']}
+/>
+
+### South units
+
+<BaseStage
+  image="/img/based/storage-unit/south.webp"
+  alt="The upper floor over the south units, with the railing to the hall"
+  cost={2000}
+  nights={2}
+  adds={['1 more employee, 8 in total', 'About 53 m² of new floor']}
+/>
+
+### Second loading bay
+
+<BaseStage
+  image="/img/based/storage-unit/bay.webp"
+  alt="The hall with loading bays 1 and 2 side by side"
+  cost={1500}
+  nights={1}
+  adds={['A second delivery spot in the hall', 'Bay 1 moves over to make room']}
+/>
