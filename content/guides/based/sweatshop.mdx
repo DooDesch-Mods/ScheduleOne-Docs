@@ -22,15 +22,28 @@ Mrs. Ming sells the plan for $1,000 once you own the Sweatshop.
 
 <FloorPlan
   title="Sweatshop, finished"
-  x={[-66, -52]}
-  z={[134, 151]}
+  x={[-68, -52]}
+  z={[134, 151.5]}
   areas={[
-    { x: [-65, -60], z: [135, 141.1], kind: 'yours', label: 'Sweatshop' },
-    { x: [-60, -56], z: [137.9, 141.1], kind: 'yours' },
-    { x: [-60, -54], z: [135.9, 137.9], kind: 'new' },
-    { x: [-56, -54], z: [137.9, 141.1], kind: 'new' },
-    { x: [-60, -54], z: [141.1, 145.1], kind: 'new', label: 'New wing' },
-    { x: [-60.25, -55.75], z: [147, 150], kind: 'bay', label: 'Loading dock' },
+    {
+      kind: 'yard',
+      shape: [[-67.5, 145.1], [-52, 145.1], [-52, 151.5], [-67.5, 151.5]],
+      label: 'Yard behind\nthe restaurant',
+      at: [-63.8, 148.3],
+    },
+    {
+      kind: 'yours',
+      shape: [[-65, 135], [-60, 135], [-60, 137.9], [-56, 137.9], [-56, 141.1], [-65, 141.1]],
+      label: 'Sweatshop',
+      at: [-62.5, 138.1],
+    },
+    {
+      kind: 'new',
+      shape: [[-60, 135.9], [-54, 135.9], [-54, 145.1], [-60, 145.1], [-60, 141.1], [-56, 141.1], [-56, 137.9], [-60, 137.9]],
+      label: 'New wing',
+      at: [-57, 143.1],
+    },
+    { x: [-60.25, -55.75], z: [147, 150], kind: 'bay', label: 'Loading\ndock' },
   ]}
   openings={[
     { x: [-60.06, -59.94], z: [135.9, 137.9] },

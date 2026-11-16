@@ -27,13 +27,13 @@ Ray sells the plan for $1,000 once you own the Storage Unit. Each stage needs th
   text={0.7}
   areas={[
     { x: [-9.3, 3.8], z: [93.5, 114.5], kind: 'building' },
-    { x: [-8.8, -1.8], z: [94, 103.8], kind: 'building', label: 'Hall', dz: -3.6 },
+    { x: [-8.8, -1.8], z: [94, 103.8], kind: 'building', label: 'Hall', at: [-5.3, 95.3] },
     { x: [-8.8, -3.8], z: [103.8, 114], kind: 'yours', label: 'Storage Unit' },
     { x: [-1.9, 3.2], z: [103.8, 114], kind: 'other', label: 'Unit 2' },
     { x: [-1.8, 3.2], z: [95.5, 101.5], kind: 'other', label: 'Unit 3' },
     { x: [-8.7, -5.7], z: [98.11, 102.61], kind: 'bay', label: 'Bay 1' },
     { x: [-5.45, -2.45], z: [98.11, 102.61], kind: 'bay', label: 'Bay 2' },
-    { x: [-10.59, -9.09], z: [99.17, 104.6], kind: 'new', label: 'Stair', dx: -1.7 },
+    { x: [-10.59, -9.09], z: [99.17, 104.6], kind: 'new', label: 'Stair', at: [-11.54, 101.885] },
   ]}
 />
 
@@ -48,7 +48,7 @@ Ray sells the plan for $1,000 once you own the Storage Unit. Each stage needs th
     { x: [-8.75, -2.2], z: [103.8, 113.8], kind: 'new', label: 'Loft' },
     { x: [-2.2, 3.2], z: [103.8, 113.8], kind: 'new', label: 'East units' },
     { x: [-2.2, 3.2], z: [94, 103.8], kind: 'new', label: 'South units' },
-    { x: [-10.59, -9.09], z: [99.17, 104.6], kind: 'new', label: 'Stair', dx: -1.7 },
+    { x: [-10.59, -9.09], z: [99.17, 104.6], kind: 'new', label: 'Stair', at: [-11.54, 101.885] },
     { x: [-10.65, -9.01], z: [104.6, 106.3], kind: 'new' },
   ]}
   openings={[{ x: [-9.1, -8.75], z: [104.85, 106.1] }]}
@@ -68,6 +68,8 @@ Ray sells the plan for $1,000 once you own the Storage Unit. Each stage needs th
 ### Loft above the unit
 
 <BaseStage
+  outside="/img/based/storage-unit/loft-outside.webp"
+  outsideAlt="The steel stair up the west wall to the new loft door"
   image="/img/based/storage-unit/loft.webp"
   alt="The loft above the Storage Unit, empty and lit"
   cost={4000}

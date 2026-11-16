@@ -6,6 +6,9 @@
 interface Props {
   image: string;
   alt: string;
+  /** Optional second image of the same stage from outside; the two then sit side by side, labelled. */
+  outside?: string;
+  outsideAlt?: string;
   /** Price in dollars. */
   cost: number;
   nights: number;
@@ -15,14 +18,27 @@ interface Props {
   height?: number;
 }
 
-const { image, alt, cost, nights, adds, width = 1600, height = 900 } = Astro.props;
+const { image, alt, outside, outsideAlt = '', cost, nights, adds, width = 1600, height = 900 } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-const src = image.startsWith('/') ? base + image : image;
+const url = (path: string) => (path.startsWith('/') ? base + path : path);
 const money = `$${cost.toLocaleString('en-US')}`;
+const views = outside
+  ? [
+      { src: url(outside), alt: outsideAlt, label: 'Outside' },
+      { src: url(image), alt, label: 'Inside' },
+    ]
+  : [{ src: url(image), alt, label: '' }];
 ---
 
 <section class="base-stage not-content">
-  <img src={src} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
+  <div class={views.length > 1 ? 'bs-views bs-pair' : 'bs-views'}>
+    {views.map((v) => (
+      <figure>
+        <img src={v.src} alt={v.alt} width={width} height={height} loading="lazy" decoding="async" />
+        {v.label && <figcaption>{v.label}</figcaption>}
+      </figure>
+    ))}
+  </div>
   <div class="bs-body">
     <dl class="bs-facts">
       <div>
@@ -58,6 +74,31 @@ const money = `$${cost.toLocaleString('en-US')}`;
     border: 1px solid var(--sl-color-gray-5);
     overflow: hidden;
     background: var(--sl-color-gray-7, var(--sl-color-black));
+  }
+  .bs-views {
+    display: grid;
+    gap: 2px;
+    background: var(--sl-color-gray-5);
+  }
+  @media (min-width: 40rem) {
+    .bs-pair {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .bs-views figure {
+    position: relative;
+    margin: 0;
+  }
+  .bs-views figcaption {
+    position: absolute;
+    left: 0.5rem;
+    top: 0.5rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    color: #fff;
+    background: rgb(0 0 0 / 0.6);
   }
   .base-stage img {
     display: block;

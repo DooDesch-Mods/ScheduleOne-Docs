@@ -3,15 +3,18 @@
  * A floor plan drawn from world coordinates in metres (x east, z north; north is up), so it stays sharp at any size
  * and follows the light and dark theme. One plan per floor.
  */
-type Kind = 'building' | 'yours' | 'new' | 'other' | 'bay';
+type Kind = 'building' | 'yours' | 'new' | 'other' | 'bay' | 'yard';
 interface Area {
-  x: [number, number];
-  z: [number, number];
+  /** A rectangle: world x range and z range. */
+  x?: [number, number];
+  z?: [number, number];
+  /** Or any outline as [x, z] corners, for rooms that are not rectangles. The label then needs `at`. */
+  shape?: [number, number][];
   kind: Kind;
+  /** One line per `\n`. */
   label?: string;
-  /** Moves the label from the centre of the area, in metres. */
-  dx?: number;
-  dz?: number;
+  /** Label centre in world metres; defaults to the rectangle's centre. */
+  at?: [number, number];
 }
 interface Props {
   title: string;
@@ -20,7 +23,7 @@ interface Props {
   /** World z range shown, south to north. */
   z: [number, number];
   areas: Area[];
-  /** Wall openings and doors, drawn as short thick lines. */
+  /** Wall openings, drawn as short thick lines. */
   openings?: { x: [number, number]; z: [number, number] }[];
   /** Label size in metres. */
   text?: number;
@@ -38,46 +41,56 @@ const LEGEND: Record<Kind, string> = {
   new: 'Built by Based',
   other: 'Not yours',
   bay: 'Loading bay',
+  yard: 'Outside',
 };
-const order: Kind[] = ['yours', 'new', 'bay', 'other', 'building'];
+const order: Kind[] = ['yours', 'new', 'bay', 'other', 'yard', 'building'];
 const used = order.filter((k) => areas.some((a) => a.kind === k));
 const id = `hatch-${Math.random().toString(36).slice(2, 8)}`;
 const scaleY = -z[0] + pad + 0.9;
+
+/** SVG y grows downwards, world z grows north, so every z is negated. */
+const outline = (a: Area): string => {
+  const corners: [number, number][] = a.shape ?? [
+    [a.x![0], a.z![0]],
+    [a.x![1], a.z![0]],
+    [a.x![1], a.z![1]],
+    [a.x![0], a.z![1]],
+  ];
+  return corners.map(([cx, cz]) => `${cx},${-cz}`).join(' ');
+};
+const labelAt = (a: Area): [number, number] =>
+  a.at ?? [(a.x![0] + a.x![1]) / 2, (a.z![0] + a.z![1]) / 2];
+const lineHeight = 1.2;
 ---
 
 <figure class="floor-plan not-content">
   <figcaption>{title}</figcaption>
-  <svg viewBox={`${vx} ${vy} ${vw} ${vh}`} role="img" aria-label={`${title}: ${areas.filter((a) => a.label).map((a) => a.label).join(', ')}`}>
+  <svg viewBox={`${vx} ${vy} ${vw} ${vh}`} role="img" aria-label={`${title}: ${areas.filter((a) => a.label).map((a) => a.label!.replace(/\n/g, ' ')).join(', ')}`}>
     <defs>
       <pattern id={id} width="0.6" height="0.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
         <line x1="0" y1="0" x2="0" y2="0.6" class="fp-hatch"></line>
       </pattern>
     </defs>
     {areas.map((a) => (
-      <rect
-        class={`fp-area fp-${a.kind}`}
-        x={a.x[0]}
-        y={-a.z[1]}
-        width={a.x[1] - a.x[0]}
-        height={a.z[1] - a.z[0]}
-        fill={a.kind === 'other' ? `url(#${id})` : undefined}
-      />
+      <polygon class={`fp-area fp-${a.kind}`} points={outline(a)} fill={a.kind === 'other' ? `url(#${id})` : undefined} />
     ))}
     {openings.map((o) => (
       <rect class="fp-opening" x={o.x[0]} y={-o.z[1]} width={o.x[1] - o.x[0]} height={o.z[1] - o.z[0]} />
     ))}
     {areas
       .filter((a) => a.label)
-      .map((a) => (
-        <text
-          class={`fp-label fp-label-${a.kind}`}
-          x={(a.x[0] + a.x[1]) / 2 + (a.dx ?? 0)}
-          y={-(a.z[0] + a.z[1]) / 2 - (a.dz ?? 0)}
-          font-size={text}
-        >
-          {a.label}
-        </text>
-      ))}
+      .map((a) => {
+        const [lx, lz] = labelAt(a);
+        const lines = a.label!.split('\n');
+        const first = -lz - ((lines.length - 1) * lineHeight * text) / 2;
+        return (
+          <text class={`fp-label fp-label-${a.kind}`} font-size={text}>
+            {lines.map((line, i) => (
+              <tspan x={lx} y={first + i * lineHeight * text}>{line}</tspan>
+            ))}
+          </text>
+        );
+      })}
     <g class="fp-scale" transform={`translate(${x[0]} ${scaleY})`}>
       <line x1="0" y1="0" x2="5" y2="0"></line>
       <line x1="0" y1="-0.25" x2="0" y2="0.25"></line>
@@ -96,6 +109,12 @@ const scaleY = -z[0] + pad + 0.9;
         {LEGEND[k]}
       </li>
     ))}
+    {openings.length > 0 && (
+      <li>
+        <span class="fp-swatch fp-swatch-opening" aria-hidden="true"></span>
+        Opened wall
+      </li>
+    )}
   </ul>
 </figure>
 
@@ -120,6 +139,7 @@ const scaleY = -z[0] + pad + 0.9;
   }
   .fp-area {
     stroke-width: 0.08;
+    stroke-linejoin: miter;
   }
   .fp-building {
     fill: var(--sl-color-gray-6);
@@ -146,6 +166,11 @@ const scaleY = -z[0] + pad + 0.9;
     stroke: #d97706;
     stroke-width: 0.1;
   }
+  .fp-yard {
+    fill: none;
+    stroke: var(--sl-color-gray-4);
+    stroke-dasharray: 0.4 0.3;
+  }
   .fp-opening {
     fill: var(--sl-color-accent-high);
   }
@@ -157,7 +182,8 @@ const scaleY = -z[0] + pad + 0.9;
     dominant-baseline: middle;
   }
   .fp-label-building,
-  .fp-label-other {
+  .fp-label-other,
+  .fp-label-yard {
     fill: var(--sl-color-gray-2);
     font-weight: 400;
   }
@@ -214,5 +240,16 @@ const scaleY = -z[0] + pad + 0.9;
   .fp-swatch.fp-bay {
     background: rgb(245 158 11 / 0.3);
     border-color: #d97706;
+  }
+  .fp-swatch.fp-yard {
+    background: none;
+    border-style: dashed;
+    border-color: var(--sl-color-gray-4);
+  }
+  .fp-swatch-opening {
+    height: 0.3rem;
+    border: none;
+    border-radius: 0;
+    background: var(--sl-color-accent-high);
   }
 </style>
