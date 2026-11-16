@@ -49,6 +49,12 @@ Debug builds only, typed into the game's dev console. The console needs `Setting
 | `sideloadwheel [notches] [appId]` | turns the wheel over the newest page through the real raycast and names what took the notch. Negative scrolls down |
 | `sideloadsurface [off\|<width> <height>]` | mounts the selftest bundle in a panel at the middle of the screen, at the size you pick |
 | `sideloadgamma [hex]` | for every mounted page, names the canvas, its render mode and camera, and what a colour turns into on the way to the shader - `sideloadgamma #3a3d42` |
+| `sideloaddrag <appId> <fromX,fromY> <toX,toY> <steps> <selector>` | presses on the element, moves in that many frames and releases. Points are fractions of the element's box, 0,0 top left. The selector also reaches an open popup - `sideloaddrag sideload-selftest 0,0.5 1,0.5 12 #vol` |
+| `sideloadgesture <appId> <hoverFrames> <holdFrames> <selector>` | rests on the element, then presses, holds and releases - `sideloadgesture sideload-selftest 30 6 #go` |
+| `sideloadpopup <appId> <key>` | sends ArrowDown, ArrowUp, Home, End, Enter or Escape to an open option list and says whether the list took it |
+| `sideloadhome` | presses the phone's home button through the real raycast and says what closed |
+| `sideloadesc` | presses Escape through the Input System, so the game's typing gate applies, and logs PASS when the app on screen closed |
+| `sideloadpad [open\|close\|dump\|off\|select <n>\|up\|down\|left\|right\|a [n]]` | drives the phone home screen with a virtual gamepad. `dump` (the default) logs the icon grid and the selected icon, `off` removes the pad |
 
 ## Read the log first
 
