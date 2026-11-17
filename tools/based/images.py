@@ -24,15 +24,24 @@ WALL_IN_SHADE = 1.25
 SOURCES = {
     "storage-unit/before": ("storage/vanilla/door-front.png", WALL_IN_SHADE),
     "storage-unit/after": ("storage/loft/door-front.png", WALL_IN_SHADE),
+    # Each stage card wipes from the stage before it to the stage itself, same view.
+    "storage-unit/loft-outside-before": ("storage/vanilla/stair-side.png", WALL_IN_SHADE),
     "storage-unit/loft-outside": ("storage/loft/stair-side.png", WALL_IN_SHADE),
+    "storage-unit/loft-before": ("storage/vanilla/loft-south.png", INSIDE),
     "storage-unit/loft": ("storage/loft/loft-south.png", INSIDE),
+    "storage-unit/east-before": ("storage/loft/east-room.png", INSIDE),
     "storage-unit/east": ("storage/east/east-room.png", INSIDE),
+    "storage-unit/south-before": ("storage/east/south-room.png", INSIDE),
     "storage-unit/south": ("storage/south/south-room.png", INSIDE),
+    "storage-unit/bay-before": ("storage/south/hall-bays.png", INSIDE),
     "storage-unit/bay": ("storage/bay/hall-bays.png", INSIDE),
     "sweatshop/before": "sweatshop/none/north-high.png",
     "sweatshop/after": "sweatshop/dock/north-high.png",
-    "sweatshop/wing": ("sweatshop/complete/wing-room.png", INSIDE),
-    "sweatshop/dock": "sweatshop/dock/dock-high.png",
+    # From the yard: the wing stands on the low building behind the restaurant, so the new storey fills the frame.
+    "sweatshop/wing-before": ("sweatshop/none/wing-yard.png", WALL_IN_SHADE),
+    "sweatshop/wing": ("sweatshop/complete/wing-yard.png", WALL_IN_SHADE),
+    "sweatshop/dock-before": ("sweatshop/complete/dock-yard.png", WALL_IN_SHADE),
+    "sweatshop/dock": ("sweatshop/dock/dock-yard.png", WALL_IN_SHADE),
 }
 
 

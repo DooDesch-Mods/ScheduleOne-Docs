@@ -29,6 +29,10 @@ BASES = {
             "dock-high": ((-56.5, 12, 151.5), (-58.8, -3, 146.2), 42, (-63, -3.6, 148)),
             "wing-room": ((-54.6, 1.6, 144.6), (-59.5, 0.8, 137), 70, (-54.5, 0, 144.8)),
             "inside-east": ((-64.3, 1.6, 136.3), (-55, 1.0, 143), 70, (-64.5, 0, 135.4)),
+            # Down at a slant from above the east roof edge, so the dock marking fills the frame and the roof only a corner.
+            "dock-yard": ((-55, 2.5, 151), (-56.3, -3.9, 148.6), 36, (-53, -3.6, 151)),
+            # From the yard: the wing stands on the low building behind the restaurant, so it fills the upper half.
+            "wing-yard": ((-57, -2, 151), (-57, 0.5, 142), 60, (-57, -3.6, 151)),
         },
         "stages": {
             "none": (["baseddiag", "phase", "none"], "construction moved to"),

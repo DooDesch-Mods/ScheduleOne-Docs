@@ -2,13 +2,20 @@
 /**
  * One construction stage of a base: its day image, what it costs, how many nights it takes and what it adds.
  * The stage's name is a Markdown heading above the component, so it shows in the page's table of contents.
+ * With a `before` image of the same view (the stage before this one built), the image becomes a before/after wipe.
  */
+import BeforeAfter from './BeforeAfter.astro';
+
 interface Props {
   image: string;
   alt: string;
-  /** Optional second image of the same stage from outside; the two then sit side by side, labelled. */
+  before?: string;
+  beforeAlt?: string;
+  /** Optional second view of the same stage from outside, labelled; two still images sit side by side, wipes stack. */
   outside?: string;
   outsideAlt?: string;
+  outsideBefore?: string;
+  outsideBeforeAlt?: string;
   /** Price in dollars. */
   cost: number;
   nights: number;
@@ -18,26 +25,54 @@ interface Props {
   height?: number;
 }
 
-const { image, alt, outside, outsideAlt = '', cost, nights, adds, width = 1600, height = 900 } = Astro.props;
+const {
+  image,
+  alt,
+  before,
+  beforeAlt = '',
+  outside,
+  outsideAlt = '',
+  outsideBefore,
+  outsideBeforeAlt = '',
+  cost,
+  nights,
+  adds,
+  width = 1600,
+  height = 900,
+} = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const url = (path: string) => (path.startsWith('/') ? base + path : path);
 const money = `$${cost.toLocaleString('en-US')}`;
 const views = outside
   ? [
-      { src: url(outside), alt: outsideAlt, label: 'Outside' },
-      { src: url(image), alt, label: 'Inside' },
+      { src: outside, alt: outsideAlt, before: outsideBefore, beforeAlt: outsideBeforeAlt, label: 'Outside' },
+      { src: image, alt, before, beforeAlt, label: 'Inside' },
     ]
-  : [{ src: url(image), alt, label: '' }];
+  : [{ src: image, alt, before, beforeAlt, label: '' }];
+// A wipe needs the full card width to be usable, so a card with one stacks its views.
+const sideBySide = views.length > 1 && !views.some((v) => v.before);
 ---
 
 <section class="base-stage not-content">
-  <div class={views.length > 1 ? 'bs-views bs-pair' : 'bs-views'}>
-    {views.map((v) => (
-      <figure>
-        <img src={v.src} alt={v.alt} width={width} height={height} loading="lazy" decoding="async" />
-        {v.label && <figcaption>{v.label}</figcaption>}
-      </figure>
-    ))}
+  <div class={sideBySide ? 'bs-views bs-pair' : 'bs-views'}>
+    {views.map((v) =>
+      v.before ? (
+        <BeforeAfter
+          before={v.before}
+          after={v.src}
+          beforeAlt={v.beforeAlt}
+          afterAlt={v.alt}
+          caption={v.label}
+          width={width}
+          height={height}
+        />
+      ) : (
+        <figure>
+          <img src={url(v.src)} alt={v.alt} width={width} height={height} loading="lazy" decoding="async" />
+          {v.label && <figcaption>{v.label}</figcaption>}
+        </figure>
+      )
+    )}
   </div>
   <div class="bs-body">
     <dl class="bs-facts">
@@ -88,6 +123,12 @@ const views = outside
   .bs-views figure {
     position: relative;
     margin: 0;
+  }
+  /* The card draws the frame, so the wipe inside it drops its own margin, border and corners. */
+  .bs-views :global(.before-after) {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
   }
   .bs-views figcaption {
     position: absolute;
