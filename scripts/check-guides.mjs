@@ -49,9 +49,12 @@ function gh(args, cacheKey) {
   return out;
 }
 
-/** The tag the docs describe: the same ref the ingest reads, so the two cannot disagree about which version. */
+/**
+ * The tag the docs describe: the same ref the ingest reads, so the two cannot disagree about which version. Not
+ * cached: the CI restores .cache across runs, and a cached answer kept naming a release that was long superseded.
+ */
 function latestTag(repo) {
-  return JSON.parse(gh(['api', `repos/${repo}/releases/latest`], `${repo}-latest`)).tag_name;
+  return JSON.parse(gh(['api', `repos/${repo}/releases/latest`])).tag_name;
 }
 
 function source(repo, ref, path) {
