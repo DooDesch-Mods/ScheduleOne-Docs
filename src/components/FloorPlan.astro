@@ -1,0 +1,255 @@
+---
+/**
+ * A floor plan drawn from world coordinates in metres (x east, z north; north is up), so it stays sharp at any size
+ * and follows the light and dark theme. One plan per floor.
+ */
+type Kind = 'building' | 'yours' | 'new' | 'other' | 'bay' | 'yard';
+interface Area {
+  /** A rectangle: world x range and z range. */
+  x?: [number, number];
+  z?: [number, number];
+  /** Or any outline as [x, z] corners, for rooms that are not rectangles. The label then needs `at`. */
+  shape?: [number, number][];
+  kind: Kind;
+  /** One line per `\n`. */
+  label?: string;
+  /** Label centre in world metres; defaults to the rectangle's centre. */
+  at?: [number, number];
+}
+interface Props {
+  title: string;
+  /** World x range shown, west to east. */
+  x: [number, number];
+  /** World z range shown, south to north. */
+  z: [number, number];
+  areas: Area[];
+  /** Wall openings, drawn as short thick lines. */
+  openings?: { x: [number, number]; z: [number, number] }[];
+  /** Label size in metres. */
+  text?: number;
+}
+
+const { title, x, z, areas, openings = [], text = 0.75 } = Astro.props;
+const pad = 1;
+const vx = x[0] - pad;
+const vy = -z[1] - pad;
+const vw = x[1] - x[0] + pad * 2;
+const vh = z[1] - z[0] + pad * 2 + 2.2;
+const LEGEND: Record<Kind, string> = {
+  building: 'Rest of the building',
+  yours: 'Yours from the start',
+  new: 'Built by Based',
+  other: 'Not yours',
+  bay: 'Loading bay',
+  yard: 'Outside',
+};
+const order: Kind[] = ['yours', 'new', 'bay', 'other', 'yard', 'building'];
+const used = order.filter((k) => areas.some((a) => a.kind === k));
+const id = `hatch-${Math.random().toString(36).slice(2, 8)}`;
+const scaleY = -z[0] + pad + 0.9;
+
+/** SVG y grows downwards, world z grows north, so every z is negated. */
+const outline = (a: Area): string => {
+  const corners: [number, number][] = a.shape ?? [
+    [a.x![0], a.z![0]],
+    [a.x![1], a.z![0]],
+    [a.x![1], a.z![1]],
+    [a.x![0], a.z![1]],
+  ];
+  return corners.map(([cx, cz]) => `${cx},${-cz}`).join(' ');
+};
+const labelAt = (a: Area): [number, number] =>
+  a.at ?? [(a.x![0] + a.x![1]) / 2, (a.z![0] + a.z![1]) / 2];
+const lineHeight = 1.2;
+---
+
+<figure class="floor-plan not-content">
+  <figcaption>{title}</figcaption>
+  <svg viewBox={`${vx} ${vy} ${vw} ${vh}`} role="img" aria-label={`${title}: ${areas.filter((a) => a.label).map((a) => a.label!.replace(/\n/g, ' ')).join(', ')}`}>
+    <defs>
+      <pattern id={id} width="0.6" height="0.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="0.6" class="fp-hatch"></line>
+      </pattern>
+    </defs>
+    {areas.map((a) => (
+      <polygon class={`fp-area fp-${a.kind}`} points={outline(a)} fill={a.kind === 'other' ? `url(#${id})` : undefined} />
+    ))}
+    {openings.map((o) => (
+      <rect class="fp-opening" x={o.x[0]} y={-o.z[1]} width={o.x[1] - o.x[0]} height={o.z[1] - o.z[0]} />
+    ))}
+    {areas
+      .filter((a) => a.label)
+      .map((a) => {
+        const [lx, lz] = labelAt(a);
+        const lines = a.label!.split('\n');
+        const first = -lz - ((lines.length - 1) * lineHeight * text) / 2;
+        return (
+          <text class={`fp-label fp-label-${a.kind}`} font-size={text}>
+            {lines.map((line, i) => (
+              <tspan x={lx} y={first + i * lineHeight * text}>{line}</tspan>
+            ))}
+          </text>
+        );
+      })}
+    <g class="fp-scale" transform={`translate(${x[0]} ${scaleY})`}>
+      <line x1="0" y1="0" x2="5" y2="0"></line>
+      <line x1="0" y1="-0.25" x2="0" y2="0.25"></line>
+      <line x1="5" y1="-0.25" x2="5" y2="0.25"></line>
+      <text x="5.5" y="0" font-size={text * 0.85}>5 m</text>
+    </g>
+    <g class="fp-north" transform={`translate(${x[1] - 0.6} ${scaleY})`}>
+      <path d="M 0 -0.9 L 0.45 0.35 L 0 0.1 L -0.45 0.35 Z"></path>
+      <text x="-0.75" y="0" text-anchor="end" font-size={text * 0.85}>N</text>
+    </g>
+  </svg>
+  <ul class="fp-legend">
+    {used.map((k) => (
+      <li>
+        <span class={`fp-swatch fp-${k}`} aria-hidden="true"></span>
+        {LEGEND[k]}
+      </li>
+    ))}
+    {openings.length > 0 && (
+      <li>
+        <span class="fp-swatch fp-swatch-opening" aria-hidden="true"></span>
+        Opened wall
+      </li>
+    )}
+  </ul>
+</figure>
+
+<style>
+  .floor-plan {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--sl-color-gray-5);
+    background: var(--sl-color-gray-7, var(--sl-color-black));
+  }
+  .floor-plan figcaption {
+    font-weight: 600;
+    color: var(--sl-color-white);
+    margin-bottom: 0.5rem;
+  }
+  .floor-plan svg {
+    display: block;
+    width: 100%;
+    max-height: 32rem;
+    height: auto;
+  }
+  .fp-area {
+    stroke-width: 0.08;
+    stroke-linejoin: miter;
+  }
+  .fp-building {
+    fill: var(--sl-color-gray-6);
+    stroke: var(--sl-color-gray-4);
+  }
+  .fp-yours {
+    fill: color-mix(in srgb, var(--sl-color-gray-3) 35%, transparent);
+    stroke: var(--sl-color-gray-2);
+  }
+  .fp-new {
+    fill: color-mix(in srgb, var(--sl-color-accent) 35%, transparent);
+    stroke: var(--sl-color-accent);
+    stroke-width: 0.12;
+  }
+  .fp-other {
+    stroke: var(--sl-color-gray-4);
+  }
+  .fp-hatch {
+    stroke: var(--sl-color-gray-4);
+    stroke-width: 0.08;
+  }
+  .fp-bay {
+    fill: rgb(245 158 11 / 0.3);
+    stroke: #d97706;
+    stroke-width: 0.1;
+  }
+  .fp-yard {
+    fill: none;
+    stroke: var(--sl-color-gray-4);
+    stroke-dasharray: 0.4 0.3;
+  }
+  .fp-opening {
+    fill: var(--sl-color-accent-high);
+  }
+  .fp-label {
+    fill: var(--sl-color-white);
+    font-family: var(--sl-font);
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+  .fp-label-building,
+  .fp-label-other,
+  .fp-label-yard {
+    fill: var(--sl-color-gray-2);
+    font-weight: 400;
+  }
+  .fp-scale line {
+    stroke: var(--sl-color-gray-2);
+    stroke-width: 0.08;
+  }
+  .fp-scale text,
+  .fp-north text {
+    fill: var(--sl-color-gray-2);
+    font-family: var(--sl-font);
+    dominant-baseline: middle;
+  }
+  .fp-north path {
+    fill: var(--sl-color-gray-2);
+  }
+  .fp-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-2);
+  }
+  .fp-legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .fp-swatch {
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 0.15rem;
+    border: 1.5px solid;
+  }
+  .fp-swatch.fp-building {
+    background: var(--sl-color-gray-6);
+    border-color: var(--sl-color-gray-4);
+  }
+  .fp-swatch.fp-yours {
+    background: color-mix(in srgb, var(--sl-color-gray-3) 35%, transparent);
+    border-color: var(--sl-color-gray-2);
+  }
+  .fp-swatch.fp-new {
+    background: color-mix(in srgb, var(--sl-color-accent) 35%, transparent);
+    border-color: var(--sl-color-accent);
+  }
+  .fp-swatch.fp-other {
+    background: repeating-linear-gradient(45deg, var(--sl-color-gray-4) 0 1.5px, transparent 1.5px 5px);
+    border-color: var(--sl-color-gray-4);
+  }
+  .fp-swatch.fp-bay {
+    background: rgb(245 158 11 / 0.3);
+    border-color: #d97706;
+  }
+  .fp-swatch.fp-yard {
+    background: none;
+    border-style: dashed;
+    border-color: var(--sl-color-gray-4);
+  }
+  .fp-swatch-opening {
+    height: 0.3rem;
+    border: none;
+    border-radius: 0;
+    background: var(--sl-color-accent-high);
+  }
+</style>

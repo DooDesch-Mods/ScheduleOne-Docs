@@ -506,7 +506,7 @@ function readableDependency(id) {
 function readGuides(slug) {
   const guideDir = join(GUIDES, slug);
   if (!existsSync(guideDir)) return [];
-  const guides = readdirSync(guideDir).filter((f) => f.endsWith('.md')).map((file) => {
+  const guides = readdirSync(guideDir).filter((f) => /\.mdx?$/.test(f)).map((file) => {
     const where = `content/guides/${slug}/${file}`;
     const raw = readFileSync(join(guideDir, file), 'utf8');
     const { data } = matter(raw);
@@ -516,7 +516,7 @@ function readGuides(slug) {
     if (description.length < 20 || /^\s*([-*+]|\d+\.)(\s|$)/.test(description)) {
       throw new Error(`${where}: description "${description}" is not a sentence. Write the result of the page in one sentence.`);
     }
-    return { file, name: basename(file, '.md'), title: String(data.title), order: data.sidebar?.order ?? 50, raw };
+    return { file, name: basename(file).replace(/\.mdx?$/, ''), title: String(data.title), order: data.sidebar?.order ?? 50, raw };
   });
   const starts = guides.filter((g) => g.order === 1);
   if (starts.length > 1) {

@@ -1,0 +1,85 @@
+---
+title: Sweatshop
+description: Where the Sweatshop is, how it looks with the new wing, and what each stage costs and adds.
+sidebar:
+  order: 10
+---
+
+import MapSpot from '@components/MapSpot.astro';
+import FloorPlan from '@components/FloorPlan.astro';
+import BeforeAfter from '@components/BeforeAfter.astro';
+import BaseStage from '@components/BaseStage.astro';
+
+Mrs. Ming sells the plan for $1,000 once you own the Sweatshop.
+
+| Total cost | Build time | Employees | Loading docks |
+|---|---|---|---|
+| $5,500 | 5 nights | 1 → 3 | 0 → 1 |
+
+## Where it is
+
+<MapSpot x={[-65, -54]} z={[135, 145.1]} label="Sweatshop" alt="Map of Northtown with the Sweatshop behind Mrs. Ming's restaurant marked" />
+
+<FloorPlan
+  title="Sweatshop, finished"
+  x={[-68, -52]}
+  z={[134, 151.5]}
+  areas={[
+    {
+      kind: 'yard',
+      shape: [[-67.5, 145.1], [-52, 145.1], [-52, 151.5], [-67.5, 151.5]],
+      label: 'Yard behind\nthe restaurant',
+      at: [-63.8, 148.3],
+    },
+    {
+      kind: 'yours',
+      shape: [[-65, 135], [-60, 135], [-60, 137.9], [-56, 137.9], [-56, 141.1], [-65, 141.1]],
+      label: 'Sweatshop',
+      at: [-62.5, 138.1],
+    },
+    {
+      kind: 'new',
+      shape: [[-60, 135.9], [-54, 135.9], [-54, 145.1], [-60, 145.1], [-60, 141.1], [-56, 141.1], [-56, 137.9], [-60, 137.9]],
+      label: 'New wing',
+      at: [-57, 143.1],
+    },
+    { x: [-60.25, -55.75], z: [147, 150], kind: 'bay', label: 'Loading\ndock' },
+  ]}
+  openings={[
+    { x: [-60.06, -59.94], z: [135.9, 137.9] },
+    { x: [-60, -56], z: [137.84, 137.96] },
+    { x: [-56.06, -55.94], z: [137.9, 141.1] },
+    { x: [-60, -56], z: [141.04, 141.16] },
+  ]}
+/>
+
+## Before and after
+
+<BeforeAfter
+  before="/img/based/sweatshop/before.webp"
+  after="/img/based/sweatshop/after.webp"
+  beforeAlt="The yard behind Mrs. Ming's restaurant without the wing"
+  afterAlt="The finished wing behind the restaurant, with the loading dock in front"
+/>
+
+## Stages
+
+### New wing
+
+<BaseStage
+  image="/img/based/sweatshop/wing.webp"
+  alt="Inside the new wing, looking back through the opened wall into the old room"
+  cost={3000}
+  nights={4}
+  adds={['2 more employees, 3 in total', 'About 42 m² of new floor']}
+/>
+
+### Loading dock
+
+<BaseStage
+  image="/img/based/sweatshop/dock.webp"
+  alt="The loading dock in the yard behind the restaurant"
+  cost={1500}
+  nights={1}
+  adds={['Deliveries park in the yard behind the restaurant', 'Employees unload the van from there']}
+/>

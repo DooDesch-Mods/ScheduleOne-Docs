@@ -239,7 +239,7 @@ function checkSupportLinks(files) {
 import { readdirSync } from 'node:fs';
 
 const everyGuide = readdirSync(GUIDES)
-  .flatMap((mod) => readdirSync(join(GUIDES, mod)).filter((f) => f.endsWith('.md')).map((f) => `${mod}/${f}`));
+  .flatMap((mod) => readdirSync(join(GUIDES, mod)).filter((f) => /\.mdx?$/.test(f)).map((f) => `${mod}/${f}`));
 
 checkSupportLinks(everyGuide);
 

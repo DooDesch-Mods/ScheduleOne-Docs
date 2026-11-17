@@ -1,0 +1,92 @@
+---
+/**
+ * A cut-out of the in-game map around one place, with the building outlined and a pin on it.
+ * Positions are world coordinates in metres (x east, z north), the same numbers the mods use, so a new base needs
+ * no new image. The conversion is the game's own MapPositionUtility: origin (10.49, -3.69), 1024 px for 204.54 m.
+ */
+interface Props {
+  /** World x range of the building, west to east. */
+  x: [number, number];
+  /** World z range of the building, south to north. */
+  z: [number, number];
+  label: string;
+  /** Width of the cut-out in metres. */
+  span?: number;
+  alt: string;
+}
+
+const { x, z, label, span = 190, alt } = Astro.props;
+const SIZE = 2048;
+const ORIGIN_X = 10.49;
+const ORIGIN_Z = -3.69;
+const PX_PER_M = 1024 / 204.54;
+const px = (wx: number) => SIZE / 2 + (wx - ORIGIN_X) * PX_PER_M;
+const py = (wz: number) => SIZE / 2 - (wz - ORIGIN_Z) * PX_PER_M;
+
+const left = px(x[0]);
+const right = px(x[1]);
+const top = py(z[1]);
+const bottom = py(z[0]);
+const cx = (left + right) / 2;
+const cy = (top + bottom) / 2;
+const w = span * PX_PER_M;
+const h = w * 0.6;
+const vx = Math.min(Math.max(cx - w / 2, 0), SIZE - w);
+const vy = Math.min(Math.max(cy - h / 2, 0), SIZE - h);
+const pin = 52;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<figure class="map-spot not-content">
+  <svg viewBox={`${vx} ${vy} ${w} ${h}`} role="img" aria-label={alt}>
+    <image href={`${base}/img/based/map.webp`} x="0" y="0" width={SIZE} height={SIZE} />
+    <rect class="ms-building" x={left} y={top} width={right - left} height={bottom - top} rx="2" />
+    <g transform={`translate(${cx - pin / 2} ${top - pin - 4}) scale(${pin / 24})`}>
+      <path class="ms-pin" d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path>
+      <circle class="ms-pin-dot" cx="12" cy="10" r="3"></circle>
+    </g>
+    <text class="ms-label" x={cx + pin / 2 + 6} y={top - pin / 2}>{label}</text>
+  </svg>
+  <figcaption>North is up. The outlined building is the base.</figcaption>
+</figure>
+
+<style>
+  .map-spot {
+    margin: 1.5rem 0;
+  }
+  .map-spot svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    border: 1px solid var(--sl-color-gray-5);
+  }
+  .ms-building {
+    fill: rgb(255 214 10 / 0.18);
+    stroke: #ffd60a;
+    stroke-width: 4;
+  }
+  .ms-pin {
+    fill: #ffd60a;
+    stroke: #1b1b1b;
+    stroke-width: 1.2;
+  }
+  .ms-pin-dot {
+    fill: #1b1b1b;
+  }
+  .ms-label {
+    font-family: var(--sl-font);
+    font-size: 30px;
+    font-weight: 700;
+    fill: #fff;
+    stroke: rgb(0 0 0 / 0.75);
+    stroke-width: 6px;
+    paint-order: stroke;
+    dominant-baseline: middle;
+  }
+  .map-spot figcaption {
+    margin-top: 0.5rem;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+</style>
