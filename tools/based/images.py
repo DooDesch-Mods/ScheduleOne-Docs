@@ -37,11 +37,11 @@ SOURCES = {
     "storage-unit/bay": ("storage/bay/hall-bays.png", INSIDE),
     "sweatshop/before": "sweatshop/none/north-high.png",
     "sweatshop/after": "sweatshop/dock/north-high.png",
-    # From the old room: the wing-room view has no "before", it stands where the wing is built.
-    "sweatshop/wing-before": ("sweatshop/none/inside-east.png", INSIDE),
-    "sweatshop/wing": ("sweatshop/complete/inside-east.png", INSIDE),
-    "sweatshop/dock-before": "sweatshop/complete/dock-high.png",
-    "sweatshop/dock": "sweatshop/dock/dock-high.png",
+    # From the yard: the wing stands on the low building behind the restaurant, so the new storey fills the frame.
+    "sweatshop/wing-before": ("sweatshop/none/wing-yard.png", WALL_IN_SHADE),
+    "sweatshop/wing": ("sweatshop/complete/wing-yard.png", WALL_IN_SHADE),
+    "sweatshop/dock-before": ("sweatshop/complete/dock-yard.png", WALL_IN_SHADE),
+    "sweatshop/dock": ("sweatshop/dock/dock-yard.png", WALL_IN_SHADE),
 }
 
 
