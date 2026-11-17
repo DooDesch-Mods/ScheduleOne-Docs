@@ -11,12 +11,23 @@ interface Props {
   afterAlt: string;
   beforeLabel?: string;
   afterLabel?: string;
+  /** Optional name of the view, shown bottom left (for example "Outside" when a card has two views). */
+  caption?: string;
   width?: number;
   height?: number;
 }
 
-const { before, after, beforeAlt, afterAlt, beforeLabel = 'Before', afterLabel = 'After', width = 1600, height = 900 } =
-  Astro.props;
+const {
+  before,
+  after,
+  beforeAlt,
+  afterAlt,
+  beforeLabel = 'Before',
+  afterLabel = 'After',
+  caption = '',
+  width = 1600,
+  height = 900,
+} = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const src = (path: string) => (path.startsWith('/') ? base + path : path);
 ---
@@ -26,6 +37,7 @@ const src = (path: string) => (path.startsWith('/') ? base + path : path);
   <img class="ba-img ba-before" src={src(before)} alt={beforeAlt} width={width} height={height} loading="lazy" decoding="async" />
   <span class="ba-tag ba-tag-before">{beforeLabel}</span>
   <span class="ba-tag ba-tag-after">{afterLabel}</span>
+  {caption && <span class="ba-tag ba-tag-caption">{caption}</span>}
   <span class="ba-line" aria-hidden="true">
     <span class="ba-knob">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 7-5 5 5 5"></path><path d="m15 7 5 5-5 5"></path></svg>
@@ -85,6 +97,11 @@ const src = (path: string) => (path.startsWith('/') ? base + path : path);
   }
   .ba-tag-after {
     right: 0.75rem;
+  }
+  .ba-tag-caption {
+    top: auto;
+    bottom: 0.75rem;
+    left: 0.75rem;
   }
   .ba-line {
     position: absolute;

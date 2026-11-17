@@ -24,14 +24,23 @@ WALL_IN_SHADE = 1.25
 SOURCES = {
     "storage-unit/before": ("storage/vanilla/door-front.png", WALL_IN_SHADE),
     "storage-unit/after": ("storage/loft/door-front.png", WALL_IN_SHADE),
+    # Each stage card wipes from the stage before it to the stage itself, same view.
+    "storage-unit/loft-outside-before": ("storage/vanilla/stair-side.png", WALL_IN_SHADE),
     "storage-unit/loft-outside": ("storage/loft/stair-side.png", WALL_IN_SHADE),
+    "storage-unit/loft-before": ("storage/vanilla/loft-south.png", INSIDE),
     "storage-unit/loft": ("storage/loft/loft-south.png", INSIDE),
+    "storage-unit/east-before": ("storage/loft/east-room.png", INSIDE),
     "storage-unit/east": ("storage/east/east-room.png", INSIDE),
+    "storage-unit/south-before": ("storage/east/south-room.png", INSIDE),
     "storage-unit/south": ("storage/south/south-room.png", INSIDE),
+    "storage-unit/bay-before": ("storage/south/hall-bays.png", INSIDE),
     "storage-unit/bay": ("storage/bay/hall-bays.png", INSIDE),
     "sweatshop/before": "sweatshop/none/north-high.png",
     "sweatshop/after": "sweatshop/dock/north-high.png",
-    "sweatshop/wing": ("sweatshop/complete/wing-room.png", INSIDE),
+    # From the old room: the wing-room view has no "before", it stands where the wing is built.
+    "sweatshop/wing-before": ("sweatshop/none/inside-east.png", INSIDE),
+    "sweatshop/wing": ("sweatshop/complete/inside-east.png", INSIDE),
+    "sweatshop/dock-before": "sweatshop/complete/dock-high.png",
     "sweatshop/dock": "sweatshop/dock/dock-high.png",
 }
 
